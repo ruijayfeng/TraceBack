@@ -1,0 +1,33 @@
+schema_version: '1.0'
+mapping_type: category
+source_type: wazuh
+default: unknown
+rules:
+- id: authentication-authentication_success
+  match:
+    all:
+    - field: rule_groups
+      op: contains
+      value: authentication_success
+  output: authentication
+- id: authentication-authentication_failed
+  match:
+    all:
+    - field: rule_groups
+      op: contains
+      value: authentication_failed
+  output: authentication
+- id: authentication-authentication_failures
+  match:
+    all:
+    - field: rule_groups
+      op: contains
+      value: authentication_failures
+  output: authentication
+- id: authentication-authentication
+  match:
+    all:
+    - field: rule_groups
+      op: contains
+      value: authentication
+  output: authentication

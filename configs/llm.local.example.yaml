@@ -1,0 +1,4 @@
+# 将此模板复制为 llm.local.yaml，再在引号内填写 API Key。
+# llm.local.yaml 已加入 .gitignore；不要在此模板中填写真实密钥。
+# 服务地址和模型填写在 llm.yaml，修改后重启后端。
+api_key: ""

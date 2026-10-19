@@ -1,0 +1,128 @@
+version: alert-correlation-v5-semantic-repair-v1
+schema_version: 5.3-candidate
+observation_policy:
+  version: alert-correlation-v5-separation-direction-v1
+  schema_version: 5.2-candidate
+  transition_ceiling: 0.9
+  weak_ceiling: 0.45
+  hot_min_count: 100
+  hot_ratio: 0.1
+  direction_support: 0.9
+  direction_threshold: 0.75
+  direction_margin: 0.15
+  clock_skew_seconds: 2
+  network_sources:
+  - suricata
+  - ids
+  - waf
+  - wazuh
+  category_classes:
+    reconnaissance: reconnaissance
+    web_attack: web_attack
+    initial_access: web_attack
+    command_execution: execution
+    process_execution: execution
+    authentication: authentication
+    credential_access: resource_access
+    command_and_control: network_access
+  wazuh_fields:
+    execution_type: /data/audit/type
+    operation: /data/audit/operation
+    file: /data/audit/file
+    auth_status: /data/status
+  execution_types:
+  - EXECVE
+  resource_operations:
+  - read
+  - write
+  - create
+  - execute
+  auth_success:
+  - success
+  - accepted
+  detector_tokens:
+    reconnaissance:
+    - 'ET SCAN '
+    web_attack:
+    - injection
+    - exploit
+  flow_fields:
+    source_id: /flow_id
+    received_id: /data/flow_id
+    receive_action: /data/action
+  receive_actions:
+  - receive
+  - accept
+  - execute
+  transitions:
+  - id: recon_web
+    from: reconnaissance
+    to: web_attack
+    strength: 0.8
+    contexts:
+    - IP
+    - HOST
+  - id: web_execution
+    from: web_attack
+    to: execution
+    strength: 0.9
+    contexts:
+    - IP
+    - HOST
+  - id: execution_resource
+    from: execution
+    to: resource_access
+    strength: 0.8
+    contexts:
+    - HOST
+    - ACCOUNT
+  - id: resource_authentication
+    from: resource_access
+    to: authentication
+    strength: 0.8
+    contexts:
+    - ACCOUNT
+  - id: authentication_execution
+    from: authentication
+    to: execution
+    strength: 0.7
+    contexts:
+    - HOST
+    - ACCOUNT
+  - id: execution_network
+    from: execution
+    to: network_access
+    strength: 0.6
+    contexts:
+    - IP
+  diagnostic_operating_points:
+  - 0.45
+  - 0.5
+  - 0.55
+  - 0.6
+  - 0.65
+  - 0.7
+weak_ceiling: 0.45
+partial_ceiling: 0.5
+transition_ceiling: 0.9
+chain_admission_policy:
+  strong_correlation: 0.7
+  moderate_correlation: 0.55
+  minimum_direction: 0.75
+  high_direction: 0.9
+designs:
+- A
+- B
+- C
+chain_policies:
+- A
+- B
+- C
+- D
+diagnostic_operating_points:
+- 0.45
+- 0.5
+- 0.55
+- 0.6
+- 0.65
+- 0.7

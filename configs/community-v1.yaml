@@ -1,0 +1,44 @@
+version: community-v1
+windows_seconds:
+  '1': 1800
+  '2': 600
+  '3': 120
+  '4': 30
+  '5': 15
+max_community_span_seconds: 3600
+max_community_members: 250
+max_weak_members: 20
+max_witnesses_per_key: 64
+max_candidates_per_alert: 128
+hot_host_min_count: 100
+hot_host_ratio: 0.05
+# Explicit scalar projections, restricted to the declared alert format.
+# No record locators, payload parsing, source-name rules or inferred identities.
+projections:
+  multisource_native_v1:
+    trace: [/trace_id]
+    correlation: [/correlation_id]
+    transaction: [/transaction_id]
+    direct_reference: [/direct_reference, /parent_event_id]
+    object: [/object_id, /request_object_id, /response_object_id]
+    file_hash: [/file_hash]
+    protocol: [/protocol, /proto]
+    direction: [/direction]
+    source_role: [/source_role]
+    destination_role: [/destination_role]
+    service: [/service]
+    operation: [/operation]
+  suricata_eve_v1:
+    protocol: [/proto]
+  wazuh_json_v1:
+    trace: [/data/trace_id]
+    correlation: [/data/correlation_id]
+    direct_reference: [/data/parent_event_id]
+    object: [/data/object_id]
+    file_hash: [/data/file_hash]
+    protocol: [/data/protocol]
+    direction: [/data/direction]
+    source_role: [/data/source_role]
+    destination_role: [/data/destination_role]
+    service: [/data/service]
+    operation: [/data/operation]

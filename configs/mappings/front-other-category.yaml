@@ -1,0 +1,151 @@
+{
+  "schema_version": "1.0",
+  "mapping_type": "category",
+  "source_type": "other",
+  "default": "unknown",
+  "rules": [
+    {
+      "id": "operation-ProcessStart",
+      "match": {
+        "all": [
+          {
+            "field": "alert_type",
+            "op": "eq",
+            "value": "ProcessStart"
+          }
+        ]
+      },
+      "output": "process_execution"
+    },
+    {
+      "id": "operation-ProcessTermination",
+      "match": {
+        "all": [
+          {
+            "field": "alert_type",
+            "op": "eq",
+            "value": "ProcessTermination"
+          }
+        ]
+      },
+      "output": "process_execution"
+    },
+    {
+      "id": "operation-EXECVE",
+      "match": {
+        "all": [
+          {
+            "field": "alert_type",
+            "op": "eq",
+            "value": "EXECVE"
+          }
+        ]
+      },
+      "output": "process_execution"
+    },
+    {
+      "id": "operation-exec",
+      "match": {
+        "all": [
+          {
+            "field": "alert_type",
+            "op": "eq",
+            "value": "exec"
+          }
+        ]
+      },
+      "output": "process_execution"
+    },
+    {
+      "id": "operation-CommandExecution",
+      "match": {
+        "all": [
+          {
+            "field": "alert_type",
+            "op": "eq",
+            "value": "CommandExecution"
+          }
+        ]
+      },
+      "output": "command_execution"
+    },
+    {
+      "id": "operation-login",
+      "match": {
+        "all": [
+          {
+            "field": "alert_type",
+            "op": "eq",
+            "value": "login"
+          }
+        ]
+      },
+      "output": "authentication"
+    },
+    {
+      "id": "operation-logout",
+      "match": {
+        "all": [
+          {
+            "field": "alert_type",
+            "op": "eq",
+            "value": "logout"
+          }
+        ]
+      },
+      "output": "authentication"
+    },
+    {
+      "id": "operation-credential_accepted",
+      "match": {
+        "all": [
+          {
+            "field": "alert_type",
+            "op": "eq",
+            "value": "credential_accepted"
+          }
+        ]
+      },
+      "output": "authentication"
+    },
+    {
+      "id": "operation-session_open",
+      "match": {
+        "all": [
+          {
+            "field": "alert_type",
+            "op": "eq",
+            "value": "session_open"
+          }
+        ]
+      },
+      "output": "authentication"
+    },
+    {
+      "id": "operation-pam_account",
+      "match": {
+        "all": [
+          {
+            "field": "alert_type",
+            "op": "eq",
+            "value": "pam_account"
+          }
+        ]
+      },
+      "output": "authentication"
+    },
+    {
+      "id": "operation-account_switch",
+      "match": {
+        "all": [
+          {
+            "field": "alert_type",
+            "op": "eq",
+            "value": "account_switch"
+          }
+        ]
+      },
+      "output": "authentication"
+    }
+  ]
+}

@@ -1,0 +1,509 @@
+# V5 execution identity; version v4 retains the unchanged canonical feature/candidate profile.
+version: v4
+normalization:
+  timestamp_precision: microseconds
+  missing_timestamp: quarantine
+  missing_timezone: require_source_timezone
+  unknown_category: unknown
+  unknown_severity: unknown
+  source_timezones: {}
+  host_aliases: {}
+  category_mapping_files: []
+  category_priority:
+  - web_attack
+  - command_execution
+  - process_execution
+  - privilege_escalation
+  - lateral_movement
+  - credential_access
+  - persistence
+  - defense_evasion
+  - command_and_control
+  - exfiltration
+  - impact
+  - initial_access
+  - reconnaissance
+  - authentication
+  - discovery
+  - collection
+  - unknown
+  severity_mapping_files: []
+candidate:
+  time_only_window_seconds: 60
+  default_window_seconds: 1800
+  max_window_seconds: 7200
+  source_complement_window_seconds: 300
+  explicit_relation_window_seconds: 7200
+  behavior_override_channels:
+  - IP
+  - HOST
+  - ACCOUNT
+  - SESSION
+  - PROCESS
+  - URL
+  - DOMAIN
+  - FILE
+  - COMMAND
+  - explicit_relation
+  behavior_window_overrides:
+  - from_category: web_attack
+    to_category: process_execution
+    window_seconds: 300
+  - from_category: web_attack
+    to_category: command_execution
+    window_seconds: 300
+  - from_category: initial_access
+    to_category: lateral_movement
+    window_seconds: 7200
+  - from_category: authentication
+    to_category: lateral_movement
+    window_seconds: 3600
+  per_channel_neighbors: 50
+  time_only_neighbors: 20
+  max_neighbors_per_alert: 200
+  max_candidate_pairs: 2000000
+  overflow_policy: mark_incomplete
+  hot_entity_ratio: 0.1
+  hot_entity_min_count: 100
+  hot_entity_neighbors: 10
+  entity_windows_seconds:
+    IP: 600
+    HOST: 1800
+    ACCOUNT: 3600
+    SESSION: 3600
+    PROCESS: 600
+    URL: 600
+    DOMAIN: 600
+    FILE: 1800
+    COMMAND: 600
+time:
+  method: exponential_half_life
+  default_half_life_seconds: 300
+  clock_skew_seconds: 2
+  transition_half_lives:
+  - from_category: web_attack
+    to_category: process_execution
+    half_life_seconds: 60
+    window_seconds: 300
+  - from_category: web_attack
+    to_category: command_execution
+    half_life_seconds: 60
+    window_seconds: 300
+  - from_category: process_execution
+    to_category: privilege_escalation
+    half_life_seconds: 300
+    window_seconds: 1800
+  - from_category: authentication
+    to_category: lateral_movement
+    half_life_seconds: 600
+    window_seconds: 3600
+  - from_category: initial_access
+    to_category: lateral_movement
+    half_life_seconds: 1200
+    window_seconds: 7200
+  - from_category: lateral_movement
+    to_category: command_and_control
+    half_life_seconds: 600
+    window_seconds: 3600
+  - from_category: collection
+    to_category: exfiltration
+    half_life_seconds: 600
+    window_seconds: 3600
+entity:
+  weights:
+    IP: 0.25
+    HOST: 0.55
+    ACCOUNT: 0.7
+    SESSION: 0.9
+    PROCESS: 0.8
+    URL: 0.85
+    DOMAIN: 0.35
+    FILE: 0.9
+    COMMAND: 0.9
+  role_factors:
+    same_role: 1.0
+    src_dst_bridge: 0.8
+    other_role: 0.5
+  process_descriptor_factor: 0.25
+  rarity_enabled: true
+  rarity_floor: 0.1
+  rarity_smoothing: 1
+  rarity_scope: analysis_representatives
+  frequency_unit: dedupe_group
+  max_contributors_per_type: 3
+relation:
+  scores:
+    target_to_process: 0.9
+    parent_child_process: 1.0
+    account_host_pivot: 0.8
+    network_pivot: 0.8
+    session_continuity: 0.9
+behavior:
+  same_category: 0.4
+  unknown_category: 0.0
+  unlisted_transition: 0.1
+  transitions:
+  - from_category: reconnaissance
+    to_category: initial_access
+    score: 0.8
+  - from_category: reconnaissance
+    to_category: web_attack
+    score: 0.8
+  - from_category: initial_access
+    to_category: process_execution
+    score: 0.9
+  - from_category: initial_access
+    to_category: command_execution
+    score: 0.9
+  - from_category: initial_access
+    to_category: lateral_movement
+    score: 0.7
+  - from_category: web_attack
+    to_category: process_execution
+    score: 1.0
+  - from_category: web_attack
+    to_category: command_execution
+    score: 1.0
+  - from_category: authentication
+    to_category: process_execution
+    score: 0.7
+  - from_category: authentication
+    to_category: lateral_movement
+    score: 0.8
+  - from_category: process_execution
+    to_category: command_execution
+    score: 0.8
+  - from_category: process_execution
+    to_category: privilege_escalation
+    score: 0.9
+  - from_category: command_execution
+    to_category: privilege_escalation
+    score: 0.9
+  - from_category: process_execution
+    to_category: persistence
+    score: 0.8
+  - from_category: command_execution
+    to_category: defense_evasion
+    score: 0.7
+  - from_category: privilege_escalation
+    to_category: credential_access
+    score: 0.8
+  - from_category: credential_access
+    to_category: lateral_movement
+    score: 0.9
+  - from_category: discovery
+    to_category: lateral_movement
+    score: 0.8
+  - from_category: lateral_movement
+    to_category: process_execution
+    score: 0.8
+  - from_category: lateral_movement
+    to_category: command_and_control
+    score: 0.8
+  - from_category: process_execution
+    to_category: command_and_control
+    score: 0.7
+  - from_category: command_and_control
+    to_category: collection
+    score: 0.7
+  - from_category: collection
+    to_category: exfiltration
+    score: 0.9
+  - from_category: command_execution
+    to_category: impact
+    score: 0.7
+source:
+  same_sensor_score: 0.0
+  same_type_independent_score: 0.2
+  different_type_confirmed_independent_unlisted_score: 0.3
+  unknown_independence_score: 0.0
+  independence_mapping_files: []
+  require_context_bridge: true
+  forwarded_same_origin_score: 0.0
+  complement_rules:
+  - source_types:
+    - waf
+    - edr
+    condition: "web_attack \u2194 process_execution / command_execution\uFF0C\u76EE\
+      \u6807 host \u6865\u63A5"
+    score: 1.0
+  - source_types:
+    - suricata
+    - edr
+    condition: "\u7F51\u7EDC initial_access / command_and_control \u2194 \u4E3B\u673A\
+      \u8FDB\u7A0B\u884C\u4E3A\uFF0C\u76EE\u6807 / \u4E3B\u673A\u6865\u63A5"
+    score: 0.9
+  - source_types:
+    - wazuh
+    - aminer
+    condition: "\u5B57\u6BB5\u786E\u8BA4\u5206\u522B\u6765\u81EA\u4E3B\u673A\u884C\
+      \u4E3A\u4E0E\u7F51\u7EDC / Web \u884C\u4E3A\uFF0C\u72EC\u7ACB\u68C0\u6D4B\u5668\
+      \u3001host / session \u6865\u63A5"
+    score: 0.7
+  - source_types:
+    - waf
+    - wazuh
+    condition: "web_attack \u2194 \u5DF2\u786E\u8BA4\u7684\u4E3B\u673A\u8FDB\u7A0B\
+      \ / \u547D\u4EE4\u884C\u4E3A\uFF0C\u975E\u8F6C\u53D1\u3001\u76EE\u6807 host\
+      \ \u6865\u63A5"
+    score: 0.8
+  - source_types:
+    - ids
+    - edr
+    condition: "\u7F51\u7EDC\u544A\u8B66 \u2194 \u4E3B\u673A\u8FDB\u7A0B\u884C\u4E3A\
+      \uFF0C\u660E\u786E\u7AEF\u70B9 / \u4E3B\u673A\u6865\u63A5"
+    score: 0.8
+score:
+  weights:
+    time: 0.2
+    entity: 0.3
+    relation: 0.36
+    behavior: 0.04
+    source: 0.1
+    conflict: 0.45
+    duplicate: 0.4
+  correlation_threshold: 0.65
+  require_non_time_support: true
+  evidence_v2:
+    quality_factor: 0.65
+    mass_factor: 0.35
+    entity_quality_rarity_floor: 0.8
+    semantic_weights:
+      category: 0.6
+      rule_id: 0.15
+      signature: 0.15
+      alert_type: 0.1
+    semantic_candidate_fields:
+    - category
+    - rule_id
+    - signature
+    - alert_type
+    semantic_candidate_window_seconds: 300
+    gate:
+      minimum_mass: 0.25
+      temporal_support_minimum: 0.5
+      semantic_support_minimum: 0.7
+      topology_support_minimum: 0.5
+      strong_entity_types:
+      - HOST
+      - ACCOUNT
+      - SESSION
+      - PROCESS
+      - URL
+      - FILE
+      - COMMAND
+      specific_entity_types:
+      - URL
+      - FILE
+      - COMMAND
+      specific_minimum_rarity: 0.5
+      strong_identifier_minimum_rarity: 0.5
+      strong_minimum_strength: 0.5
+      reject_hot_identifiers: true
+  evidence_v4:
+    destination_only_ip_factor: 0.25
+    metadata_support_fields:
+    - category
+    - rule_id
+    - signature
+    primary_detector_fields:
+    - rule_id
+    - signature
+    network_require_behavior_transition: true
+  evidence_v3:
+    reliability_floor: 0.1
+    primary_minimum_reliability: 0.6
+    metadata_cap: 0.2
+    network_strength: 0.9
+    network_behavior_minimum: 0.7
+    frequency_population_floor: 100
+    weak_resource_descriptor_factor: 0.25
+  evidence_v5:
+    formula: evidence-semantics-v1
+    time_floor: 0.8
+    weak_ceiling: 0.45
+    strong_identifier_minimum: 0.6
+    conflict_weight: 0.45
+    duplicate_weight: 0.4
+    reliability:
+      IP: 0.15
+      HOST: 0.35
+      ACCOUNT: 0.3
+      SESSION: 0.8
+      PROCESS: 0.8
+      URL: 0.6
+      DOMAIN: 0.1
+      FILE: 0.6
+      COMMAND: 0.6
+      role_host: 0.7
+      role_account: 0.75
+      monitored_endpoint: 0.55
+      attested_relation: 1.0
+      flow: 0.8
+      time: 0.1
+      behavior: 0.2
+      source: 0.6
+duplicate:
+  candidate_indexes:
+  - source_record
+  - origin_record
+  - payload_target_rule_time
+  window_seconds: 30
+  half_life_seconds: 10
+  threshold: 0.93
+  suspected_floor: 0.5
+  feature_weights:
+    rule: 0.25
+    payload: 0.35
+    target: 0.3
+    time: 0.1
+  require_payload_and_target: true
+  grouping: complete_link
+  representative: minimum_alert_id
+  payload_mapping_files: []
+  rule_equivalence_mapping_files: []
+  observation:
+    event_pointers:
+      wazuh:
+        flow_id:
+        - /data/flow_id
+        - /flow_id
+        transaction_id:
+        - /data/tx_id
+        - /tx_id
+        protocol:
+        - /data/proto
+        - /proto
+        event_time:
+        - /data/timestamp
+        - /timestamp
+      suricata:
+        flow_id:
+        - /flow_id
+        transaction_id:
+        - /tx_id
+        protocol:
+        - /proto
+        event_time:
+        - /timestamp
+    message_pointers:
+      wazuh:
+      - /full_log
+      aminer:
+      - /LogData/RawLogData
+    window_seconds: 2.0
+    minimum_context_matches: 1
+    equivalence_score: 0.97
+conflict:
+  combine: maximum
+  hard_rules:
+  - cross_namespace_without_bridge
+  - verified_incompatible_session
+  strengths:
+    different_target_without_bridge: 0.8
+    no_context_bridge: 0.5
+    beyond_behavior_window: 0.6
+    reversed_explicit_relation: 1.0
+    incompatible_session: 1.0
+clustering:
+  method: controlled_components
+  edge_threshold: 0.7
+  max_incident_span_seconds: 7200
+  max_representatives: 500
+  bridge_min_edges_between_non_singletons: 2
+  bridge_min_edges_with_singleton: 2
+  bridge_min_edges_between_singletons: 1
+  permit_explicit_relation_single_bridge: true
+  reject_component_hard_conflict: true
+  keep_singletons: true
+chain:
+  edge_threshold: 0.7
+  direction_threshold: 0.75
+  direction_margin: 0.15
+  require_explicit_propagation: true
+  direction_weights:
+    chronology: 0.4
+    relation: 0.35
+    behavior: 0.2
+    source: 0.05
+  explicit_relation_minimum: 0.8
+  relation_type_mapping:
+    parent_child_process: PROCESS_CAUSAL
+    target_to_process: REQUEST_TO_PROCESS
+    account_host_pivot: ACCOUNT_PIVOT
+    network_pivot: NETWORK_PIVOT
+    session_continuity: SESSION_FLOW
+  relation_priority:
+  - parent_child_process
+  - target_to_process
+  - account_host_pivot
+  - network_pivot
+  - session_continuity
+  merge_synonymous_actions: false
+  node_confidence_base: 0.5
+  node_confidence_category_bonus: 0.15
+  node_confidence_context_bonus: 0.1
+  node_confidence_independent_source_bonus: 0.1
+  node_confidence_cap: 0.85
+  graph_policy: dag
+  cycle_policy: descending_confidence_then_edge_id
+evaluation:
+  baseline_window_seconds: 300
+  thresholds:
+  - 0.55
+  - 0.6
+  - 0.65
+  - 0.7
+  - 0.75
+  - 0.8
+  window_multipliers:
+  - 0.5
+  - 1.0
+  - 2.0
+  weight_multipliers:
+  - 0.5
+  - 1.0
+  - 1.5
+  noise_ratios:
+  - 0.0
+  - 0.25
+  - 0.5
+  - 1.0
+  seed: 42
+single_alert_triage:
+  weights:
+    severity: 0.65
+    category: 0.25
+    rarity: 0.1
+  severity_scores:
+    informational: 0.1
+    low: 0.25
+    medium: 0.5
+    high: 0.8
+    critical: 1.0
+  category_scores:
+    web_attack: 0.7
+    command_execution: 0.65
+    process_execution: 0.65
+    privilege_escalation: 0.85
+    lateral_movement: 0.65
+    credential_access: 0.85
+    persistence: 0.65
+    defense_evasion: 0.65
+    command_and_control: 0.65
+    exfiltration: 0.9
+    impact: 0.9
+    initial_access: 0.7
+    reconnaissance: 0.3
+    authentication: 0.4
+    discovery: 0.4
+    collection: 0.65
+    unknown: 0
+  risk_thresholds:
+    medium: 0.35
+    high: 0.65
+    critical: 0.9
+  rarity_smoothing: 1.0
+  rarity_only_cap: 0.3
+implementation_version: v5-evidence-semantics-v1
+

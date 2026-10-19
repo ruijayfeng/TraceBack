@@ -1,0 +1,34 @@
+{
+  "schema_version": "1.0",
+  "mapping_type": "category",
+  "source_type": "waf",
+  "default": "unknown",
+  "rules": [
+    {
+      "id": "web-sql",
+      "match": {
+        "all": [
+          {
+            "field": "signature",
+            "op": "eq",
+            "value": "SQL injection pattern"
+          }
+        ]
+      },
+      "output": "web_attack"
+    },
+    {
+      "id": "web-path",
+      "match": {
+        "all": [
+          {
+            "field": "signature",
+            "op": "eq",
+            "value": "Path traversal"
+          }
+        ]
+      },
+      "output": "web_attack"
+    }
+  ]
+}

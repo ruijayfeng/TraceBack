@@ -1,0 +1,5 @@
+schema_version: "1.0"
+mapping_type: payload
+source_type: aminer
+default: null
+rules: []

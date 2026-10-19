@@ -1,0 +1,1187 @@
+{
+  "fixture_kind": "synthetic",
+  "cases": [
+    {
+      "name": "CanonicalAlert.extra",
+      "model": "CanonicalAlert",
+      "data": {
+        "timestamp": "2026-10-04T02:31:04.123456Z",
+        "source_type": "wazuh",
+        "source_namespace": "synthetic/detector-b",
+        "raw_alert": {
+          "time": "2026-10-04T02:31:04.123456Z",
+          "product": "wazuh",
+          "request": {
+            "trigger": "synthetic-process-instance"
+          },
+          "host": "synthetic-target",
+          "values": [
+            2,
+            1
+          ],
+          "evidence/key": {
+            "~name": 0
+          }
+        },
+        "field_provenance": {
+          "timestamp": {
+            "raw_pointer": "/time",
+            "transform": "synthetic/rfc3339-v1"
+          },
+          "source_type": {
+            "raw_pointer": "/product",
+            "transform": "synthetic/source-v1"
+          }
+        },
+        "raw_fingerprint": "76bb1941625bb341e0d11c71e3985fa3a0d2845245e42f716a8385c527564492",
+        "alert_id": "alt_4a9fd7d965c0bb32a800619060f1c8d079329814b5581cc49a901fda826927b4",
+        "undeclared": "synthetic"
+      }
+    },
+    {
+      "name": "Entity.extra",
+      "model": "Entity",
+      "data": {
+        "type": "HOST",
+        "value": "synthetic-target",
+        "scope": "synthetic/asset",
+        "display_value": "synthetic-target",
+        "alert_ids": [
+          "alt_4a9fd7d965c0bb32a800619060f1c8d079329814b5581cc49a901fda826927b4",
+          "alt_e347b338e9ce76e6accada195622077b8d7b14f4d036f5fe6631b3f705b5597e"
+        ],
+        "entity_id": "ent_30942292f724edf584cd98906662db9c0139d31db4fc2fee565034ca86d8b7dc",
+        "undeclared": "synthetic"
+      }
+    },
+    {
+      "name": "ProcessRef.extra",
+      "model": "ProcessRef",
+      "data": {
+        "name": "synthetic-process",
+        "pid": 0,
+        "start_time": "2026-10-04T02:31:04.123456Z",
+        "undeclared": "synthetic"
+      }
+    },
+    {
+      "name": "FieldProvenance.extra",
+      "model": "FieldProvenance",
+      "data": {
+        "raw_pointer": "/time",
+        "transform": "synthetic/rfc3339-v1",
+        "undeclared": "synthetic"
+      }
+    },
+    {
+      "name": "EntityOccurrence.extra",
+      "model": "EntityOccurrence",
+      "data": {
+        "entity_id": "ent_30942292f724edf584cd98906662db9c0139d31db4fc2fee565034ca86d8b7dc",
+        "role": "host",
+        "raw_pointer": "/host",
+        "undeclared": "synthetic"
+      }
+    },
+    {
+      "name": "EvidencePointer.extra",
+      "model": "EvidencePointer",
+      "data": {
+        "alert_id": "alt_4a9fd7d965c0bb32a800619060f1c8d079329814b5581cc49a901fda826927b4",
+        "pointer": "/request/trigger",
+        "side": "src",
+        "undeclared": "synthetic"
+      }
+    },
+    {
+      "name": "SupportPair.extra",
+      "model": "SupportPair",
+      "data": {
+        "alert_id_src": "alt_4a9fd7d965c0bb32a800619060f1c8d079329814b5581cc49a901fda826927b4",
+        "alert_id_dst": "alt_e347b338e9ce76e6accada195622077b8d7b14f4d036f5fe6631b3f705b5597e",
+        "undeclared": "synthetic"
+      }
+    },
+    {
+      "name": "AlertRelation.extra",
+      "model": "AlertRelation",
+      "data": {
+        "relation_type": "target_to_process",
+        "source_entity_id": "ent_30942292f724edf584cd98906662db9c0139d31db4fc2fee565034ca86d8b7dc",
+        "target_entity_id": "ent_30942292f724edf584cd98906662db9c0139d31db4fc2fee565034ca86d8b7dc",
+        "raw_pointers": [
+          {
+            "alert_id": "alt_4a9fd7d965c0bb32a800619060f1c8d079329814b5581cc49a901fda826927b4",
+            "pointer": "/request/trigger",
+            "side": "src"
+          },
+          {
+            "alert_id": "alt_e347b338e9ce76e6accada195622077b8d7b14f4d036f5fe6631b3f705b5597e",
+            "pointer": "/request/trigger",
+            "side": "dst"
+          }
+        ],
+        "undeclared": "synthetic"
+      }
+    },
+    {
+      "name": "Incident.extra",
+      "model": "Incident",
+      "data": {
+        "start_time": "2026-10-04T02:31:04.123456Z",
+        "end_time": "2026-10-04T02:31:04.123456Z",
+        "severity": "unknown",
+        "alert_ids": [
+          "alt_4a9fd7d965c0bb32a800619060f1c8d079329814b5581cc49a901fda826927b4",
+          "alt_e347b338e9ce76e6accada195622077b8d7b14f4d036f5fe6631b3f705b5597e"
+        ],
+        "entity_ids": [
+          "ent_30942292f724edf584cd98906662db9c0139d31db4fc2fee565034ca86d8b7dc"
+        ],
+        "incident_id": "inc_7fa11b5401c5b5b6768eca98a09b072a8c690af55ed64000c0215c13301aeb32",
+        "undeclared": "synthetic"
+      }
+    },
+    {
+      "name": "Reason.time_gap.extra",
+      "model": "Reason",
+      "data": {
+        "code": "time_gap",
+        "message": "人工契约边界样例（synthetic）",
+        "alert_ids": [
+          "alt_4a9fd7d965c0bb32a800619060f1c8d079329814b5581cc49a901fda826927b4",
+          "alt_e347b338e9ce76e6accada195622077b8d7b14f4d036f5fe6631b3f705b5597e"
+        ],
+        "entity_ids": [],
+        "params": {
+          "gap_seconds": 0,
+          "half_life_seconds": 60
+        },
+        "reason_id": "rsn_52abf35d3589b86a4cc8a02d61dc836398ac1543299013059b304d009a20eb1d",
+        "undeclared": "synthetic"
+      }
+    },
+    {
+      "name": "TimeGapParams.extra",
+      "model": "TimeGapParams",
+      "data": {
+        "gap_seconds": 0,
+        "half_life_seconds": 60,
+        "undeclared": "synthetic"
+      }
+    },
+    {
+      "name": "Reason.shared_entity.extra",
+      "model": "Reason",
+      "data": {
+        "code": "shared_entity",
+        "message": "人工契约边界样例（synthetic）",
+        "alert_ids": [
+          "alt_4a9fd7d965c0bb32a800619060f1c8d079329814b5581cc49a901fda826927b4",
+          "alt_e347b338e9ce76e6accada195622077b8d7b14f4d036f5fe6631b3f705b5597e"
+        ],
+        "entity_ids": [
+          "ent_30942292f724edf584cd98906662db9c0139d31db4fc2fee565034ca86d8b7dc"
+        ],
+        "params": {
+          "entity_type": "HOST",
+          "roles": [
+            "host"
+          ],
+          "rarity": 0.5,
+          "contribution": 0.5
+        },
+        "reason_id": "rsn_b74407bb865fc31683e7e4ca7227135a5bbededd293cedcd53a4cede1187df92",
+        "undeclared": "synthetic"
+      }
+    },
+    {
+      "name": "SharedEntityParams.extra",
+      "model": "SharedEntityParams",
+      "data": {
+        "entity_type": "HOST",
+        "roles": [
+          "host"
+        ],
+        "rarity": 0.5,
+        "contribution": 0.5,
+        "undeclared": "synthetic"
+      }
+    },
+    {
+      "name": "Reason.explicit_relation.extra",
+      "model": "Reason",
+      "data": {
+        "code": "explicit_relation",
+        "message": "人工契约边界样例（synthetic）",
+        "alert_ids": [
+          "alt_4a9fd7d965c0bb32a800619060f1c8d079329814b5581cc49a901fda826927b4",
+          "alt_e347b338e9ce76e6accada195622077b8d7b14f4d036f5fe6631b3f705b5597e"
+        ],
+        "entity_ids": [
+          "ent_30942292f724edf584cd98906662db9c0139d31db4fc2fee565034ca86d8b7dc"
+        ],
+        "params": {
+          "relation_type": "target_to_process",
+          "raw_pointers": [
+            {
+              "alert_id": "alt_4a9fd7d965c0bb32a800619060f1c8d079329814b5581cc49a901fda826927b4",
+              "pointer": "/request/trigger",
+              "side": "src"
+            },
+            {
+              "alert_id": "alt_e347b338e9ce76e6accada195622077b8d7b14f4d036f5fe6631b3f705b5597e",
+              "pointer": "/request/trigger",
+              "side": "dst"
+            }
+          ]
+        },
+        "reason_id": "rsn_fa26c367aeceed91ace6f47b2175b78835b47076f62a83b6a0b29db3267ec8c5",
+        "undeclared": "synthetic"
+      }
+    },
+    {
+      "name": "ExplicitRelationParams.extra",
+      "model": "ExplicitRelationParams",
+      "data": {
+        "relation_type": "target_to_process",
+        "raw_pointers": [
+          {
+            "alert_id": "alt_4a9fd7d965c0bb32a800619060f1c8d079329814b5581cc49a901fda826927b4",
+            "pointer": "/request/trigger",
+            "side": "src"
+          },
+          {
+            "alert_id": "alt_e347b338e9ce76e6accada195622077b8d7b14f4d036f5fe6631b3f705b5597e",
+            "pointer": "/request/trigger",
+            "side": "dst"
+          }
+        ],
+        "undeclared": "synthetic"
+      }
+    },
+    {
+      "name": "Reason.behavior_transition.extra",
+      "model": "Reason",
+      "data": {
+        "code": "behavior_transition",
+        "message": "人工契约边界样例（synthetic）",
+        "alert_ids": [
+          "alt_4a9fd7d965c0bb32a800619060f1c8d079329814b5581cc49a901fda826927b4",
+          "alt_e347b338e9ce76e6accada195622077b8d7b14f4d036f5fe6631b3f705b5597e"
+        ],
+        "entity_ids": [],
+        "params": {
+          "from_category": "web_attack",
+          "to_category": "process_execution",
+          "compatibility": 1
+        },
+        "reason_id": "rsn_289c63f252dcdf83f4aa3db362920dafc3132af040db23cccdbd31daac5c362c",
+        "undeclared": "synthetic"
+      }
+    },
+    {
+      "name": "BehaviorTransitionParams.extra",
+      "model": "BehaviorTransitionParams",
+      "data": {
+        "from_category": "web_attack",
+        "to_category": "process_execution",
+        "compatibility": 1,
+        "undeclared": "synthetic"
+      }
+    },
+    {
+      "name": "Reason.source_complement.extra",
+      "model": "Reason",
+      "data": {
+        "code": "source_complement",
+        "message": "人工契约边界样例（synthetic）",
+        "alert_ids": [
+          "alt_4a9fd7d965c0bb32a800619060f1c8d079329814b5581cc49a901fda826927b4",
+          "alt_e347b338e9ce76e6accada195622077b8d7b14f4d036f5fe6631b3f705b5597e"
+        ],
+        "entity_ids": [],
+        "params": {
+          "source_types": [
+            "wazuh",
+            "aminer"
+          ],
+          "sensor_names": [
+            "synthetic/a",
+            "synthetic/b"
+          ],
+          "rule_id": "synthetic/source-context",
+          "source_independence": "unknown",
+          "raw_pointers": [],
+          "independence_rule_ids": []
+        },
+        "reason_id": "rsn_9c943426b40e487b5a738b4a538ebd0592087f0e2fe5746c8629717daa56742e",
+        "undeclared": "synthetic"
+      }
+    },
+    {
+      "name": "SourceComplementParams.extra",
+      "model": "SourceComplementParams",
+      "data": {
+        "source_types": [
+          "wazuh",
+          "aminer"
+        ],
+        "sensor_names": [
+          "synthetic/a",
+          "synthetic/b"
+        ],
+        "rule_id": "synthetic/source-context",
+        "source_independence": "unknown",
+        "raw_pointers": [],
+        "independence_rule_ids": [],
+        "undeclared": "synthetic"
+      }
+    },
+    {
+      "name": "Reason.conflict.extra",
+      "model": "Reason",
+      "data": {
+        "code": "conflict",
+        "message": "人工契约边界样例（synthetic）",
+        "alert_ids": [
+          "alt_4a9fd7d965c0bb32a800619060f1c8d079329814b5581cc49a901fda826927b4",
+          "alt_e347b338e9ce76e6accada195622077b8d7b14f4d036f5fe6631b3f705b5597e"
+        ],
+        "entity_ids": [],
+        "params": {
+          "rule_id": "synthetic/conflict",
+          "penalty": 0
+        },
+        "reason_id": "rsn_49422fbaecd060c2f16fa281e740755db8db5747498af7b710e852cfc23db166",
+        "undeclared": "synthetic"
+      }
+    },
+    {
+      "name": "ConflictParams.extra",
+      "model": "ConflictParams",
+      "data": {
+        "rule_id": "synthetic/conflict",
+        "penalty": 0,
+        "undeclared": "synthetic"
+      }
+    },
+    {
+      "name": "Reason.duplicate.extra",
+      "model": "Reason",
+      "data": {
+        "code": "duplicate",
+        "message": "人工契约边界样例（synthetic）",
+        "alert_ids": [
+          "alt_4a9fd7d965c0bb32a800619060f1c8d079329814b5581cc49a901fda826927b4",
+          "alt_e347b338e9ce76e6accada195622077b8d7b14f4d036f5fe6631b3f705b5597e"
+        ],
+        "entity_ids": [],
+        "params": {
+          "rule_id": "synthetic/duplicate",
+          "similarity": 1
+        },
+        "reason_id": "rsn_efcafb5afd4657c816c8d3665da911124d7995c12588f2410374fb0904b17a6c",
+        "undeclared": "synthetic"
+      }
+    },
+    {
+      "name": "DuplicateParams.extra",
+      "model": "DuplicateParams",
+      "data": {
+        "rule_id": "synthetic/duplicate",
+        "similarity": 1,
+        "undeclared": "synthetic"
+      }
+    },
+    {
+      "name": "Reason.direction.extra",
+      "model": "Reason",
+      "data": {
+        "code": "direction",
+        "message": "人工契约边界样例（synthetic）",
+        "alert_ids": [
+          "alt_4a9fd7d965c0bb32a800619060f1c8d079329814b5581cc49a901fda826927b4",
+          "alt_e347b338e9ce76e6accada195622077b8d7b14f4d036f5fe6631b3f705b5597e"
+        ],
+        "entity_ids": [],
+        "params": {
+          "rule_id": "synthetic/direction",
+          "source_node_id": "nod_5a371537de8b7a2b2273ac4860dc51f447b7e2f534e43c8f656267544da14a10",
+          "target_node_id": "nod_58ce04f7f82d8548f1da84a27a0f6c388d15f9bb25d67ce1c91408a338a90e92",
+          "direction_score": 0.8
+        },
+        "reason_id": "rsn_4d720afc53d5410140eb2bd29a79e5f8bdae443f2bf552970c0ed29c145930ac",
+        "undeclared": "synthetic"
+      }
+    },
+    {
+      "name": "DirectionParams.extra",
+      "model": "DirectionParams",
+      "data": {
+        "rule_id": "synthetic/direction",
+        "source_node_id": "nod_5a371537de8b7a2b2273ac4860dc51f447b7e2f534e43c8f656267544da14a10",
+        "target_node_id": "nod_58ce04f7f82d8548f1da84a27a0f6c388d15f9bb25d67ce1c91408a338a90e92",
+        "direction_score": 0.8,
+        "undeclared": "synthetic"
+      }
+    },
+    {
+      "name": "Reason.clustering_guard.extra",
+      "model": "Reason",
+      "data": {
+        "code": "clustering_guard",
+        "message": "人工契约边界样例（synthetic）",
+        "alert_ids": [
+          "alt_4a9fd7d965c0bb32a800619060f1c8d079329814b5581cc49a901fda826927b4",
+          "alt_e347b338e9ce76e6accada195622077b8d7b14f4d036f5fe6631b3f705b5597e"
+        ],
+        "entity_ids": [],
+        "params": {
+          "rule_id": "synthetic/guard",
+          "decision": "accept",
+          "component_sizes": [
+            2,
+            2
+          ]
+        },
+        "reason_id": "rsn_df00725e3c650b83bed3d6908a7ecad48a88c47af58f3678bc7ac392ce50dca1",
+        "undeclared": "synthetic"
+      }
+    },
+    {
+      "name": "ClusteringGuardParams.extra",
+      "model": "ClusteringGuardParams",
+      "data": {
+        "rule_id": "synthetic/guard",
+        "decision": "accept",
+        "component_sizes": [
+          2,
+          2
+        ],
+        "undeclared": "synthetic"
+      }
+    },
+    {
+      "name": "Reason.node_basis.extra",
+      "model": "Reason",
+      "data": {
+        "code": "node_basis",
+        "message": "人工契约边界样例（synthetic）",
+        "alert_ids": [
+          "alt_4a9fd7d965c0bb32a800619060f1c8d079329814b5581cc49a901fda826927b4",
+          "alt_e347b338e9ce76e6accada195622077b8d7b14f4d036f5fe6631b3f705b5597e"
+        ],
+        "entity_ids": [],
+        "params": {
+          "rule_id": "synthetic/node",
+          "category": "web_attack",
+          "confidence": 0.7
+        },
+        "reason_id": "rsn_d1eab93f61caae17fb4d3667d415a6f2ead19cdd1c7755f932f7fd7573fe2841",
+        "undeclared": "synthetic"
+      }
+    },
+    {
+      "name": "NodeBasisParams.extra",
+      "model": "NodeBasisParams",
+      "data": {
+        "rule_id": "synthetic/node",
+        "category": "web_attack",
+        "confidence": 0.7,
+        "undeclared": "synthetic"
+      }
+    },
+    {
+      "name": "Reason.extra",
+      "model": "Reason",
+      "data": {
+        "code": "time_gap",
+        "message": "人工契约边界样例（synthetic）",
+        "alert_ids": [
+          "alt_4a9fd7d965c0bb32a800619060f1c8d079329814b5581cc49a901fda826927b4",
+          "alt_e347b338e9ce76e6accada195622077b8d7b14f4d036f5fe6631b3f705b5597e"
+        ],
+        "entity_ids": [],
+        "params": {
+          "gap_seconds": 0,
+          "half_life_seconds": 60
+        },
+        "reason_id": "rsn_52abf35d3589b86a4cc8a02d61dc836398ac1543299013059b304d009a20eb1d",
+        "undeclared": "synthetic"
+      }
+    },
+    {
+      "name": "DedupeGroup.extra",
+      "model": "DedupeGroup",
+      "data": {
+        "representative_alert_id": "alt_4a9fd7d965c0bb32a800619060f1c8d079329814b5581cc49a901fda826927b4",
+        "alert_ids": [
+          "alt_4a9fd7d965c0bb32a800619060f1c8d079329814b5581cc49a901fda826927b4",
+          "alt_e347b338e9ce76e6accada195622077b8d7b14f4d036f5fe6631b3f705b5597e"
+        ],
+        "duplicate_score": 1,
+        "reasons": [
+          {
+            "code": "duplicate",
+            "message": "人工契约边界样例（synthetic）",
+            "alert_ids": [
+              "alt_4a9fd7d965c0bb32a800619060f1c8d079329814b5581cc49a901fda826927b4",
+              "alt_e347b338e9ce76e6accada195622077b8d7b14f4d036f5fe6631b3f705b5597e"
+            ],
+            "entity_ids": [],
+            "params": {
+              "rule_id": "synthetic/duplicate",
+              "similarity": 1
+            },
+            "reason_id": "rsn_efcafb5afd4657c816c8d3665da911124d7995c12588f2410374fb0904b17a6c"
+          }
+        ],
+        "group_id": "dup_1753d0fb024cde4556b9b32f73a6eef685457d14f86d77dca2d5afdc6551bb45",
+        "undeclared": "synthetic"
+      }
+    },
+    {
+      "name": "ScoreWeights.extra",
+      "model": "ScoreWeights",
+      "data": {
+        "time": 0.2,
+        "entity": 0.3,
+        "relation": 0.2,
+        "behavior": 0.2,
+        "source": 0.1,
+        "conflict": 0.45,
+        "duplicate": 0.4,
+        "undeclared": "synthetic"
+      }
+    },
+    {
+      "name": "ScoreContributions.extra",
+      "model": "ScoreContributions",
+      "data": {
+        "time": 0.2,
+        "entity": 0.3,
+        "relation": 0.18,
+        "behavior": 0.2,
+        "source": 0,
+        "conflict": 0,
+        "duplicate": 0,
+        "undeclared": "synthetic"
+      }
+    },
+    {
+      "name": "ScoreBreakdown.extra",
+      "model": "ScoreBreakdown",
+      "data": {
+        "time_score": 1,
+        "entity_score": 1,
+        "relation_score": 0.9,
+        "behavior_score": 1,
+        "source_score": 0,
+        "source_independence": "unknown",
+        "conflict_penalty": 0,
+        "duplicate_penalty": 0,
+        "weights": {
+          "time": 0.2,
+          "entity": 0.3,
+          "relation": 0.2,
+          "behavior": 0.2,
+          "source": 0.1,
+          "conflict": 0.45,
+          "duplicate": 0.4
+        },
+        "contributions": {
+          "time": 0.2,
+          "entity": 0.3,
+          "relation": 0.18,
+          "behavior": 0.2,
+          "source": 0,
+          "conflict": 0,
+          "duplicate": 0
+        },
+        "raw_total": 0.88,
+        "final_score": 0.88,
+        "config_hash": "a8198524f58e72b56283ab71ebddada22840f108b46ef7165bb3fca9919c5558",
+        "undeclared": "synthetic"
+      }
+    },
+    {
+      "name": "CorrelationEdge.extra",
+      "model": "CorrelationEdge",
+      "data": {
+        "source_alert_id": "alt_4a9fd7d965c0bb32a800619060f1c8d079329814b5581cc49a901fda826927b4",
+        "target_alert_id": "alt_e347b338e9ce76e6accada195622077b8d7b14f4d036f5fe6631b3f705b5597e",
+        "score": 0.88,
+        "reasons": [
+          {
+            "code": "time_gap",
+            "message": "人工契约边界样例（synthetic）",
+            "alert_ids": [
+              "alt_4a9fd7d965c0bb32a800619060f1c8d079329814b5581cc49a901fda826927b4",
+              "alt_e347b338e9ce76e6accada195622077b8d7b14f4d036f5fe6631b3f705b5597e"
+            ],
+            "entity_ids": [],
+            "params": {
+              "gap_seconds": 0,
+              "half_life_seconds": 60
+            },
+            "reason_id": "rsn_52abf35d3589b86a4cc8a02d61dc836398ac1543299013059b304d009a20eb1d"
+          },
+          {
+            "code": "explicit_relation",
+            "message": "人工契约边界样例（synthetic）",
+            "alert_ids": [
+              "alt_4a9fd7d965c0bb32a800619060f1c8d079329814b5581cc49a901fda826927b4",
+              "alt_e347b338e9ce76e6accada195622077b8d7b14f4d036f5fe6631b3f705b5597e"
+            ],
+            "entity_ids": [
+              "ent_30942292f724edf584cd98906662db9c0139d31db4fc2fee565034ca86d8b7dc"
+            ],
+            "params": {
+              "relation_type": "target_to_process",
+              "raw_pointers": [
+                {
+                  "alert_id": "alt_4a9fd7d965c0bb32a800619060f1c8d079329814b5581cc49a901fda826927b4",
+                  "pointer": "/request/trigger",
+                  "side": "src"
+                },
+                {
+                  "alert_id": "alt_e347b338e9ce76e6accada195622077b8d7b14f4d036f5fe6631b3f705b5597e",
+                  "pointer": "/request/trigger",
+                  "side": "dst"
+                }
+              ]
+            },
+            "reason_id": "rsn_fa26c367aeceed91ace6f47b2175b78835b47076f62a83b6a0b29db3267ec8c5"
+          },
+          {
+            "code": "source_complement",
+            "message": "人工契约边界样例（synthetic）",
+            "alert_ids": [
+              "alt_4a9fd7d965c0bb32a800619060f1c8d079329814b5581cc49a901fda826927b4",
+              "alt_e347b338e9ce76e6accada195622077b8d7b14f4d036f5fe6631b3f705b5597e"
+            ],
+            "entity_ids": [],
+            "params": {
+              "source_types": [
+                "wazuh",
+                "aminer"
+              ],
+              "sensor_names": [
+                "synthetic/a",
+                "synthetic/b"
+              ],
+              "rule_id": "synthetic/source-context",
+              "source_independence": "unknown",
+              "raw_pointers": [],
+              "independence_rule_ids": []
+            },
+            "reason_id": "rsn_9c943426b40e487b5a738b4a538ebd0592087f0e2fe5746c8629717daa56742e"
+          }
+        ],
+        "entity_ids": [
+          "ent_30942292f724edf584cd98906662db9c0139d31db4fc2fee565034ca86d8b7dc"
+        ],
+        "score_breakdown": {
+          "time_score": 1,
+          "entity_score": 1,
+          "relation_score": 0.9,
+          "behavior_score": 1,
+          "source_score": 0,
+          "source_independence": "unknown",
+          "conflict_penalty": 0,
+          "duplicate_penalty": 0,
+          "weights": {
+            "time": 0.2,
+            "entity": 0.3,
+            "relation": 0.2,
+            "behavior": 0.2,
+            "source": 0.1,
+            "conflict": 0.45,
+            "duplicate": 0.4
+          },
+          "contributions": {
+            "time": 0.2,
+            "entity": 0.3,
+            "relation": 0.18,
+            "behavior": 0.2,
+            "source": 0,
+            "conflict": 0,
+            "duplicate": 0
+          },
+          "raw_total": 0.88,
+          "final_score": 0.88,
+          "config_hash": "a8198524f58e72b56283ab71ebddada22840f108b46ef7165bb3fca9919c5558"
+        },
+        "support_pair": {
+          "alert_id_src": "alt_4a9fd7d965c0bb32a800619060f1c8d079329814b5581cc49a901fda826927b4",
+          "alert_id_dst": "alt_e347b338e9ce76e6accada195622077b8d7b14f4d036f5fe6631b3f705b5597e"
+        },
+        "edge_id": "cor_71c7c850de850b2f79ec55d7ff41a9a52b0b0e4a25cc6315a997812ffd1f84e2",
+        "undeclared": "synthetic"
+      }
+    },
+    {
+      "name": "ChainNode.extra",
+      "model": "ChainNode",
+      "data": {
+        "incident_id": "inc_7fa11b5401c5b5b6768eca98a09b072a8c690af55ed64000c0215c13301aeb32",
+        "alert_ids": [
+          "alt_4a9fd7d965c0bb32a800619060f1c8d079329814b5581cc49a901fda826927b4"
+        ],
+        "start_time": "2026-10-04T02:31:04.123456Z",
+        "end_time": "2026-10-04T02:31:04.123456Z",
+        "category": "web_attack",
+        "severity": "unknown",
+        "entity_ids": [
+          "ent_30942292f724edf584cd98906662db9c0139d31db4fc2fee565034ca86d8b7dc"
+        ],
+        "confidence": 0.7,
+        "reasons": [
+          {
+            "code": "node_basis",
+            "message": "人工节点依据（synthetic）",
+            "alert_ids": [
+              "alt_4a9fd7d965c0bb32a800619060f1c8d079329814b5581cc49a901fda826927b4"
+            ],
+            "params": {
+              "rule_id": "synthetic/node",
+              "category": "web_attack",
+              "confidence": 0.7
+            },
+            "reason_id": "rsn_922cab3f90ed771bccef2268ab9cc51e889992fb61cabc77a8e6e1ff9f202d62"
+          }
+        ],
+        "node_id": "nod_5a371537de8b7a2b2273ac4860dc51f447b7e2f534e43c8f656267544da14a10",
+        "undeclared": "synthetic"
+      }
+    },
+    {
+      "name": "ChainEdge.extra",
+      "model": "ChainEdge",
+      "data": {
+        "incident_id": "inc_7fa11b5401c5b5b6768eca98a09b072a8c690af55ed64000c0215c13301aeb32",
+        "source_node_id": "nod_5a371537de8b7a2b2273ac4860dc51f447b7e2f534e43c8f656267544da14a10",
+        "target_node_id": "nod_58ce04f7f82d8548f1da84a27a0f6c388d15f9bb25d67ce1c91408a338a90e92",
+        "relation_type": "REQUEST_TO_PROCESS",
+        "confidence": 0.8,
+        "direction_score": 0.8,
+        "alert_ids": [
+          "alt_4a9fd7d965c0bb32a800619060f1c8d079329814b5581cc49a901fda826927b4",
+          "alt_e347b338e9ce76e6accada195622077b8d7b14f4d036f5fe6631b3f705b5597e"
+        ],
+        "entity_ids": [
+          "ent_30942292f724edf584cd98906662db9c0139d31db4fc2fee565034ca86d8b7dc"
+        ],
+        "correlation_edge_ids": [
+          "cor_71c7c850de850b2f79ec55d7ff41a9a52b0b0e4a25cc6315a997812ffd1f84e2"
+        ],
+        "reasons": [
+          {
+            "code": "direction",
+            "message": "人工契约边界样例（synthetic）",
+            "alert_ids": [
+              "alt_4a9fd7d965c0bb32a800619060f1c8d079329814b5581cc49a901fda826927b4",
+              "alt_e347b338e9ce76e6accada195622077b8d7b14f4d036f5fe6631b3f705b5597e"
+            ],
+            "entity_ids": [],
+            "params": {
+              "rule_id": "synthetic/direction",
+              "source_node_id": "nod_5a371537de8b7a2b2273ac4860dc51f447b7e2f534e43c8f656267544da14a10",
+              "target_node_id": "nod_58ce04f7f82d8548f1da84a27a0f6c388d15f9bb25d67ce1c91408a338a90e92",
+              "direction_score": 0.8
+            },
+            "reason_id": "rsn_4d720afc53d5410140eb2bd29a79e5f8bdae443f2bf552970c0ed29c145930ac"
+          },
+          {
+            "code": "explicit_relation",
+            "message": "人工契约边界样例（synthetic）",
+            "alert_ids": [
+              "alt_4a9fd7d965c0bb32a800619060f1c8d079329814b5581cc49a901fda826927b4",
+              "alt_e347b338e9ce76e6accada195622077b8d7b14f4d036f5fe6631b3f705b5597e"
+            ],
+            "entity_ids": [
+              "ent_30942292f724edf584cd98906662db9c0139d31db4fc2fee565034ca86d8b7dc"
+            ],
+            "params": {
+              "relation_type": "target_to_process",
+              "raw_pointers": [
+                {
+                  "alert_id": "alt_4a9fd7d965c0bb32a800619060f1c8d079329814b5581cc49a901fda826927b4",
+                  "pointer": "/request/trigger",
+                  "side": "src"
+                },
+                {
+                  "alert_id": "alt_e347b338e9ce76e6accada195622077b8d7b14f4d036f5fe6631b3f705b5597e",
+                  "pointer": "/request/trigger",
+                  "side": "dst"
+                }
+              ]
+            },
+            "reason_id": "rsn_fa26c367aeceed91ace6f47b2175b78835b47076f62a83b6a0b29db3267ec8c5"
+          }
+        ],
+        "score_breakdown": {
+          "time_score": 1,
+          "entity_score": 1,
+          "relation_score": 0.9,
+          "behavior_score": 1,
+          "source_score": 0,
+          "source_independence": "unknown",
+          "conflict_penalty": 0,
+          "duplicate_penalty": 0,
+          "weights": {
+            "time": 0.2,
+            "entity": 0.3,
+            "relation": 0.2,
+            "behavior": 0.2,
+            "source": 0.1,
+            "conflict": 0.45,
+            "duplicate": 0.4
+          },
+          "contributions": {
+            "time": 0.2,
+            "entity": 0.3,
+            "relation": 0.18,
+            "behavior": 0.2,
+            "source": 0,
+            "conflict": 0,
+            "duplicate": 0
+          },
+          "raw_total": 0.88,
+          "final_score": 0.88,
+          "config_hash": "a8198524f58e72b56283ab71ebddada22840f108b46ef7165bb3fca9919c5558",
+          "selected_correlation_edge_id": "cor_71c7c850de850b2f79ec55d7ff41a9a52b0b0e4a25cc6315a997812ffd1f84e2"
+        },
+        "edge_id": "che_044f1273c781d040b93f99282bfbda3d9668d71f2a2ebe4a9545b64a7253e85f",
+        "undeclared": "synthetic"
+      }
+    },
+    {
+      "name": "AttackChain.extra",
+      "model": "AttackChain",
+      "data": {
+        "incident_id": "inc_7fa11b5401c5b5b6768eca98a09b072a8c690af55ed64000c0215c13301aeb32",
+        "nodes": [
+          {
+            "incident_id": "inc_7fa11b5401c5b5b6768eca98a09b072a8c690af55ed64000c0215c13301aeb32",
+            "alert_ids": [
+              "alt_4a9fd7d965c0bb32a800619060f1c8d079329814b5581cc49a901fda826927b4"
+            ],
+            "start_time": "2026-10-04T02:31:04.123456Z",
+            "end_time": "2026-10-04T02:31:04.123456Z",
+            "category": "web_attack",
+            "severity": "unknown",
+            "entity_ids": [
+              "ent_30942292f724edf584cd98906662db9c0139d31db4fc2fee565034ca86d8b7dc"
+            ],
+            "confidence": 0.7,
+            "reasons": [
+              {
+                "code": "node_basis",
+                "message": "人工节点依据（synthetic）",
+                "alert_ids": [
+                  "alt_4a9fd7d965c0bb32a800619060f1c8d079329814b5581cc49a901fda826927b4"
+                ],
+                "params": {
+                  "rule_id": "synthetic/node",
+                  "category": "web_attack",
+                  "confidence": 0.7
+                },
+                "reason_id": "rsn_922cab3f90ed771bccef2268ab9cc51e889992fb61cabc77a8e6e1ff9f202d62"
+              }
+            ],
+            "node_id": "nod_5a371537de8b7a2b2273ac4860dc51f447b7e2f534e43c8f656267544da14a10"
+          },
+          {
+            "incident_id": "inc_7fa11b5401c5b5b6768eca98a09b072a8c690af55ed64000c0215c13301aeb32",
+            "alert_ids": [
+              "alt_e347b338e9ce76e6accada195622077b8d7b14f4d036f5fe6631b3f705b5597e"
+            ],
+            "start_time": "2026-10-04T02:31:04.123456Z",
+            "end_time": "2026-10-04T02:31:04.123456Z",
+            "category": "process_execution",
+            "severity": "unknown",
+            "entity_ids": [
+              "ent_30942292f724edf584cd98906662db9c0139d31db4fc2fee565034ca86d8b7dc"
+            ],
+            "confidence": 0.7,
+            "reasons": [
+              {
+                "code": "node_basis",
+                "message": "人工节点依据（synthetic）",
+                "alert_ids": [
+                  "alt_e347b338e9ce76e6accada195622077b8d7b14f4d036f5fe6631b3f705b5597e"
+                ],
+                "params": {
+                  "rule_id": "synthetic/node",
+                  "category": "process_execution",
+                  "confidence": 0.7
+                },
+                "reason_id": "rsn_bbed2d3dbca923e819f9f300f8acbe3788fbff6edc58d564fbcd330a1994f134"
+              }
+            ],
+            "node_id": "nod_58ce04f7f82d8548f1da84a27a0f6c388d15f9bb25d67ce1c91408a338a90e92"
+          }
+        ],
+        "edges": [
+          {
+            "incident_id": "inc_7fa11b5401c5b5b6768eca98a09b072a8c690af55ed64000c0215c13301aeb32",
+            "source_node_id": "nod_5a371537de8b7a2b2273ac4860dc51f447b7e2f534e43c8f656267544da14a10",
+            "target_node_id": "nod_58ce04f7f82d8548f1da84a27a0f6c388d15f9bb25d67ce1c91408a338a90e92",
+            "relation_type": "REQUEST_TO_PROCESS",
+            "confidence": 0.8,
+            "direction_score": 0.8,
+            "alert_ids": [
+              "alt_4a9fd7d965c0bb32a800619060f1c8d079329814b5581cc49a901fda826927b4",
+              "alt_e347b338e9ce76e6accada195622077b8d7b14f4d036f5fe6631b3f705b5597e"
+            ],
+            "entity_ids": [
+              "ent_30942292f724edf584cd98906662db9c0139d31db4fc2fee565034ca86d8b7dc"
+            ],
+            "correlation_edge_ids": [
+              "cor_71c7c850de850b2f79ec55d7ff41a9a52b0b0e4a25cc6315a997812ffd1f84e2"
+            ],
+            "reasons": [
+              {
+                "code": "direction",
+                "message": "人工契约边界样例（synthetic）",
+                "alert_ids": [
+                  "alt_4a9fd7d965c0bb32a800619060f1c8d079329814b5581cc49a901fda826927b4",
+                  "alt_e347b338e9ce76e6accada195622077b8d7b14f4d036f5fe6631b3f705b5597e"
+                ],
+                "entity_ids": [],
+                "params": {
+                  "rule_id": "synthetic/direction",
+                  "source_node_id": "nod_5a371537de8b7a2b2273ac4860dc51f447b7e2f534e43c8f656267544da14a10",
+                  "target_node_id": "nod_58ce04f7f82d8548f1da84a27a0f6c388d15f9bb25d67ce1c91408a338a90e92",
+                  "direction_score": 0.8
+                },
+                "reason_id": "rsn_4d720afc53d5410140eb2bd29a79e5f8bdae443f2bf552970c0ed29c145930ac"
+              },
+              {
+                "code": "explicit_relation",
+                "message": "人工契约边界样例（synthetic）",
+                "alert_ids": [
+                  "alt_4a9fd7d965c0bb32a800619060f1c8d079329814b5581cc49a901fda826927b4",
+                  "alt_e347b338e9ce76e6accada195622077b8d7b14f4d036f5fe6631b3f705b5597e"
+                ],
+                "entity_ids": [
+                  "ent_30942292f724edf584cd98906662db9c0139d31db4fc2fee565034ca86d8b7dc"
+                ],
+                "params": {
+                  "relation_type": "target_to_process",
+                  "raw_pointers": [
+                    {
+                      "alert_id": "alt_4a9fd7d965c0bb32a800619060f1c8d079329814b5581cc49a901fda826927b4",
+                      "pointer": "/request/trigger",
+                      "side": "src"
+                    },
+                    {
+                      "alert_id": "alt_e347b338e9ce76e6accada195622077b8d7b14f4d036f5fe6631b3f705b5597e",
+                      "pointer": "/request/trigger",
+                      "side": "dst"
+                    }
+                  ]
+                },
+                "reason_id": "rsn_fa26c367aeceed91ace6f47b2175b78835b47076f62a83b6a0b29db3267ec8c5"
+              }
+            ],
+            "score_breakdown": {
+              "time_score": 1,
+              "entity_score": 1,
+              "relation_score": 0.9,
+              "behavior_score": 1,
+              "source_score": 0,
+              "source_independence": "unknown",
+              "conflict_penalty": 0,
+              "duplicate_penalty": 0,
+              "weights": {
+                "time": 0.2,
+                "entity": 0.3,
+                "relation": 0.2,
+                "behavior": 0.2,
+                "source": 0.1,
+                "conflict": 0.45,
+                "duplicate": 0.4
+              },
+              "contributions": {
+                "time": 0.2,
+                "entity": 0.3,
+                "relation": 0.18,
+                "behavior": 0.2,
+                "source": 0,
+                "conflict": 0,
+                "duplicate": 0
+              },
+              "raw_total": 0.88,
+              "final_score": 0.88,
+              "config_hash": "a8198524f58e72b56283ab71ebddada22840f108b46ef7165bb3fca9919c5558",
+              "selected_correlation_edge_id": "cor_71c7c850de850b2f79ec55d7ff41a9a52b0b0e4a25cc6315a997812ffd1f84e2"
+            },
+            "edge_id": "che_044f1273c781d040b93f99282bfbda3d9668d71f2a2ebe4a9545b64a7253e85f"
+          }
+        ],
+        "status": "complete",
+        "chain_id": "chn_779a90085cc9016ceb4174bee5fba3da86448eb36e924f500a96326624ec2ef4",
+        "undeclared": "synthetic"
+      }
+    },
+    {
+      "name": "GroundedProposition.extra",
+      "model": "GroundedProposition",
+      "data": {
+        "subject_type": "alert",
+        "subject_id": "alt_4a9fd7d965c0bb32a800619060f1c8d079329814b5581cc49a901fda826927b4",
+        "field": "severity",
+        "value": "unknown",
+        "undeclared": "synthetic"
+      }
+    },
+    {
+      "name": "AttackMapping.extra",
+      "model": "AttackMapping",
+      "data": {
+        "technique_id": "T1059.001",
+        "technique_name": "synthetic catalog technique",
+        "catalog_version": "synthetic-v1",
+        "rationale": "仅测试 Schema，不声称观测技术",
+        "undeclared": "synthetic"
+      }
+    },
+    {
+      "name": "AIClaim.extra",
+      "model": "AIClaim",
+      "data": {
+        "kind": "fact",
+        "section": "summary",
+        "text": "告警等级字段为 unknown。",
+        "alert_ids": [
+          "alt_4a9fd7d965c0bb32a800619060f1c8d079329814b5581cc49a901fda826927b4"
+        ],
+        "propositions": [
+          {
+            "subject_type": "alert",
+            "subject_id": "alt_4a9fd7d965c0bb32a800619060f1c8d079329814b5581cc49a901fda826927b4",
+            "field": "severity",
+            "value": "unknown"
+          }
+        ],
+        "claim_id": "clm_87fd2544630441f830ccbfd7c1fdf37ed35fb17ef840e3c52f6c6084f225dd02",
+        "undeclared": "synthetic"
+      }
+    },
+    {
+      "name": "AnalysisMetrics.extra",
+      "model": "AnalysisMetrics",
+      "data": {
+        "alert_count": 2,
+        "representative_count": 2,
+        "candidate_pair_count": 1,
+        "candidate_dropped_count": 0,
+        "correlation_runtime_seconds": 0,
+        "clustering_runtime_seconds": 0,
+        "chain_runtime_seconds": 0,
+        "total_runtime_seconds": 0,
+        "peak_memory_mb": 0,
+        "undeclared": "synthetic"
+      }
+    },
+    {
+      "name": "AnalysisRecord.extra",
+      "model": "AnalysisRecord",
+      "data": {
+        "input_alert_ids": [
+          "alt_4a9fd7d965c0bb32a800619060f1c8d079329814b5581cc49a901fda826927b4",
+          "alt_e347b338e9ce76e6accada195622077b8d7b14f4d036f5fe6631b3f705b5597e"
+        ],
+        "config_hash": "a8198524f58e72b56283ab71ebddada22840f108b46ef7165bb3fca9919c5558",
+        "config_snapshot": {
+          "synthetic": true
+        },
+        "algorithm_version": "synthetic-v1",
+        "dataset_digest": "9ff1c3c5f2333b7f1806c9c882fb146621dc39b34aec36f9a4f7ca9c12b064a9",
+        "config_digest": "a8198524f58e72b56283ab71ebddada22840f108b46ef7165bb3fca9919c5558",
+        "mapping_digest": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "is_complete": false,
+        "incomplete_reason": null,
+        "metrics": {
+          "alert_count": 2,
+          "representative_count": 2,
+          "candidate_pair_count": 1,
+          "candidate_dropped_count": 0,
+          "correlation_runtime_seconds": 0,
+          "clustering_runtime_seconds": 0,
+          "chain_runtime_seconds": 0,
+          "total_runtime_seconds": 0,
+          "peak_memory_mb": 0
+        },
+        "analysis_id": "ana_bdd26333527f08020870d92106ca0245072d4cbbda0e6337590a11d6b7f0b521",
+        "diagnostics_ref": "outputs/analyses/ana_bdd26333527f08020870d92106ca0245072d4cbbda0e6337590a11d6b7f0b521/diagnostics.jsonl",
+        "frequency_snapshot_ref": "outputs/analyses/ana_bdd26333527f08020870d92106ca0245072d4cbbda0e6337590a11d6b7f0b521/frequency_snapshot.json",
+        "undeclared": "synthetic"
+      }
+    },
+    {
+      "name": "AIExplanation.extra",
+      "model": "AIExplanation",
+      "data": {
+        "analysis_id": "ana_bdd26333527f08020870d92106ca0245072d4cbbda0e6337590a11d6b7f0b521",
+        "incident_id": "inc_7fa11b5401c5b5b6768eca98a09b072a8c690af55ed64000c0215c13301aeb32",
+        "chain_id": "chn_779a90085cc9016ceb4174bee5fba3da86448eb36e924f500a96326624ec2ef4",
+        "input_digest": "9e8ab5313f2515e3cdbd01c47061a7693579277cf497c92ef5df2ebaaddf1c3f",
+        "provider": "synthetic-provider",
+        "model": "synthetic-model",
+        "prompt_version": "synthetic-v1",
+        "claims": [
+          {
+            "kind": "fact",
+            "section": "summary",
+            "text": "告警等级字段为 unknown。",
+            "alert_ids": [
+              "alt_4a9fd7d965c0bb32a800619060f1c8d079329814b5581cc49a901fda826927b4"
+            ],
+            "propositions": [
+              {
+                "subject_type": "alert",
+                "subject_id": "alt_4a9fd7d965c0bb32a800619060f1c8d079329814b5581cc49a901fda826927b4",
+                "field": "severity",
+                "value": "unknown"
+              }
+            ],
+            "claim_id": "clm_87fd2544630441f830ccbfd7c1fdf37ed35fb17ef840e3c52f6c6084f225dd02"
+          }
+        ],
+        "explanation_id": "aix_25a456818feeace5e7911cc51e4920fa91fa0e155016a8d727835a3794193826",
+        "undeclared": "synthetic"
+      }
+    },
+    {
+      "name": "EvaluationSummaryExport.extra",
+      "model": "EvaluationSummaryExport",
+      "data": {
+        "run_id": "2456a76df0c223b8ecd4663f6d1322f9044fcc4d3570bd66765ef1cb32c7897f",
+        "config_hash": "a8198524f58e72b56283ab71ebddada22840f108b46ef7165bb3fca9919c5558",
+        "algorithm_version": "synthetic-v1",
+        "split": "synthetic-test",
+        "metrics": {
+          "precision": null
+        },
+        "metric_status": {
+          "precision": "not_applicable"
+        },
+        "evaluation_coverage": 0,
+        "counts": {
+          "tp": 0
+        },
+        "runtime": {
+          "seconds": 0
+        },
+        "limitations": [
+          "synthetic：空分母，无真实实验结论"
+        ],
+        "undeclared": "synthetic"
+      }
+    }
+  ]
+}

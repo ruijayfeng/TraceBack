@@ -1,0 +1,5 @@
+import {it,expect,vi} from 'vitest';
+import {api} from '../api/client';
+it('uses only same-origin TraceBack API and sends explicit snapshot scope',async() => {const fetch=vi.fn().mockResolvedValue(new Response(JSON.stringify({analysis_id:'a',alert:{}}),{status:200}));vi.stubGlobal('fetch',fetch);await api.alert('analysis','alert');expect(fetch.mock.calls[0][0]).toBe('/api/v1/alerts/alert?analysis_id=analysis');});
+it('accepts the formal validated 409 fallback envelope for display',async() => {vi.stubGlobal('fetch',vi.fn().mockResolvedValue(new Response(JSON.stringify({report_json:{},generation_status:'provider_unavailable'}),{status:409})));expect(await api.explain('a','i')).toHaveProperty('generation_status','provider_unavailable');});
+it('does not echo arbitrary error bodies, secrets or server environment',async() => {vi.stubGlobal('fetch',vi.fn().mockResolvedValue(new Response(JSON.stringify({detail:'OPENAI_API_KEY=private secret env'}),{status:500})));await expect(api.overview('a')).rejects.toThrow('request_failed');});

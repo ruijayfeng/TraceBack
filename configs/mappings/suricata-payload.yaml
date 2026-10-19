@@ -1,0 +1,11 @@
+schema_version: "1.0"
+mapping_type: payload
+source_type: suricata
+default: null
+rules:
+  - id: structured-network-request-v1
+    match:
+      all:
+        - {field: url, op: exists, value: true}
+    output:
+      fields: [src_ip, dst_ip, src_port, dst_port, url]

@@ -1,0 +1,73 @@
+{
+  "schema_version": "1.0",
+  "mapping_type": "severity",
+  "source_type": "waf",
+  "default": "unknown",
+  "rules": [
+    {
+      "id": "severity-info",
+      "match": {
+        "all": [
+          {
+            "field": "raw_severity",
+            "op": "eq",
+            "value": "info"
+          }
+        ]
+      },
+      "output": "informational"
+    },
+    {
+      "id": "severity-low",
+      "match": {
+        "all": [
+          {
+            "field": "raw_severity",
+            "op": "eq",
+            "value": "low"
+          }
+        ]
+      },
+      "output": "low"
+    },
+    {
+      "id": "severity-medium",
+      "match": {
+        "all": [
+          {
+            "field": "raw_severity",
+            "op": "eq",
+            "value": "medium"
+          }
+        ]
+      },
+      "output": "medium"
+    },
+    {
+      "id": "severity-high",
+      "match": {
+        "all": [
+          {
+            "field": "raw_severity",
+            "op": "eq",
+            "value": "high"
+          }
+        ]
+      },
+      "output": "high"
+    },
+    {
+      "id": "severity-critical",
+      "match": {
+        "all": [
+          {
+            "field": "raw_severity",
+            "op": "eq",
+            "value": "critical"
+          }
+        ]
+      },
+      "output": "critical"
+    }
+  ]
+}

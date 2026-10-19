@@ -1,0 +1,40 @@
+schema_version: '1.0'
+mapping_type: severity
+source_type: aminer
+default: unknown
+rules:
+- id: named-informational
+  match:
+    all:
+    - field: raw_severity
+      op: eq
+      value: informational
+  output: informational
+- id: named-low
+  match:
+    all:
+    - field: raw_severity
+      op: eq
+      value: low
+  output: low
+- id: named-medium
+  match:
+    all:
+    - field: raw_severity
+      op: eq
+      value: medium
+  output: medium
+- id: named-high
+  match:
+    all:
+    - field: raw_severity
+      op: eq
+      value: high
+  output: high
+- id: named-critical
+  match:
+    all:
+    - field: raw_severity
+      op: eq
+      value: critical
+  output: critical

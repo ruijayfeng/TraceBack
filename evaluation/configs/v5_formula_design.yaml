@@ -1,0 +1,26 @@
+version: alert-correlation-v5-formula-exp-design-v1
+threshold: 0.65
+# Human specified hypotheses, frozen before blind scoring; no fitted weights.
+weak_ceiling: 0.45
+semantic_mass_reference: 0.8
+time_floor: 0.8
+interaction_cap: 0.2
+interactions: {host_account: 0.15, role_time: 0.05, source_entity: 0.05}
+soft_penalty: 0.08
+conflict_weight: 0.45
+duplicate_weight: 0.4
+reliability:
+  generic: {IP: 0.15, HOST: 0.35, ACCOUNT: 0.3, SESSION: 0.8, PROCESS: 0.8, URL: 0.6, DOMAIN: 0.1, FILE: 0.6, COMMAND: 0.6}
+  role_host: 0.7
+  role_account: 0.75
+  monitored_endpoint: 0.55
+  attested_relation: 0.95
+  metadata: 0.2
+  source: 0.6
+  time: 0.1
+gate_soft_factor: 0.5
+strong_identifier_minimum: 0.6
+safety:
+  # Reference tail may increase slightly, never without explicit bounded limits.
+  max_tail_absolute_increase: 0.05
+  weak_only_max: 0.45

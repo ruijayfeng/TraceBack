@@ -1,0 +1,19 @@
+# Reviewable v1 heuristics, not calibrated probabilities or historical thresholds.
+version: stage-relations-v1
+time_reversal_tolerance_seconds: 30
+evidence:
+  parent_child_process: {rank: 1, strength: 0.95}
+  request_response: {rank: 1, strength: 0.95}
+  session_followup: {rank: 1, strength: 0.95}
+  attested_relation: {rank: 1, strength: 0.95}
+  object_create_execute: {rank: 2, strength: 0.9}
+  object_handoff: {rank: 2, strength: 0.9}
+  shared_process_instance: {rank: 3, strength: 0.7}
+  shared_binding: {rank: 3, strength: 0.6}
+  shared_entity: {rank: 4, strength: 0.45}
+  network_context: {rank: 5, strength: 0.35}
+request_operations: [request, Request, HTTPRequest]
+response_operations: [response, Response, HTTPResponse]
+session_start_operations: [login, session_open, SessionStart]
+object_create_operations: [FileCreate, ObjectCreate]
+object_execute_operations: [ProcessStart, ObjectExecute, exec, EXECVE]

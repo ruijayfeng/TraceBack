@@ -1,0 +1,45 @@
+schema_version: '1.0'
+mapping_type: severity
+source_type: suricata
+default: unknown
+rules:
+- id: wazuh-level-informational
+  match:
+    all:
+    - field: raw_severity
+      op: range
+      min: 0
+      max: 2
+  output: informational
+- id: wazuh-level-low
+  match:
+    all:
+    - field: raw_severity
+      op: range
+      min: 3
+      max: 5
+  output: low
+- id: wazuh-level-medium
+  match:
+    all:
+    - field: raw_severity
+      op: range
+      min: 6
+      max: 9
+  output: medium
+- id: wazuh-level-high
+  match:
+    all:
+    - field: raw_severity
+      op: range
+      min: 10
+      max: 12
+  output: high
+- id: wazuh-level-critical
+  match:
+    all:
+    - field: raw_severity
+      op: range
+      min: 13
+      max: 15
+  output: critical

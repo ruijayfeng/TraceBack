@@ -1,0 +1,16 @@
+# Exact vendor classes only; no signature keyword inference or ATT&CK/stages.
+schema_version: '1.0'
+mapping_type: category
+source_type: suricata
+default: unknown
+rules:
+  - id: vendor-web-application-attack
+    match:
+      all:
+        - {field: vendor_category, op: eq, value: Web Application Attack}
+    output: web_attack
+  - id: vendor-network-scan
+    match:
+      all:
+        - {field: vendor_category, op: eq, value: Detection of a Network Scan}
+    output: reconnaissance

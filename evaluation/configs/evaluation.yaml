@@ -1,0 +1,9 @@
+version: evaluation-v1
+split: observational_unsplit_no_tuning
+noise:
+  base_representatives: 512
+  ratios: [0.0, 0.10, 0.25, 0.50]
+  seed: 42
+limitations:
+  - No independent development/test split supplied; these experiments do not select production parameters.
+  - Current real GT is an attack timeline without validated alert membership or negative labels.

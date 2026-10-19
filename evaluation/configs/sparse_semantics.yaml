@@ -1,0 +1,70 @@
+version: v5.2-sparse-incident-development-v1
+DEVELOPMENT_ONLY: true
+deployment: false
+REFERENCE_THRESHOLD: 0.65
+AMBIGUOUS_RATE_LIMIT: 0.15
+acceptance:
+  candidate_recall: 1.0
+  development_admission_recall: 0.8571428571428571
+  target_development_admission_recall: 1.0
+  development_hn_rejection: 0.95
+  stress_admission_recall: 0.90
+  stress_hn_rejection: 0.90
+  target_worst_margin: 0.05
+  require_margin_improvement_each_set: true
+  require_final_and_binary_metrics: true
+  no_post_evaluation_revision: true
+formula:
+  mass_scale: 1.0
+  confidence_scale: 1.0
+  behavior_weight: 0.8
+  qualified_context_weight: 1.2
+  task_weight: 1.2
+  direct_weight: 2.0
+  weak_ceiling: 0.60
+  minimum_groups: 2
+  parent_factor: 0.2
+  time_floor: 0.8
+  dimensions: [context, actor, content, behavior, qualified_context, task, direct]
+  contradiction_matrix:
+    request: {scope: TASK_CONTRADICTION, invalidates: [same_request, same_task]}
+    process_start: {scope: IDENTITY_CONTRADICTION, invalidates: [same_process]}
+    epoch: {scope: CONTEXT_CONTRADICTION, invalidates: [same_session]}
+    scope: {scope: CONTEXT_CONTRADICTION, invalidates: [same_context]}
+    temporal: {scope: DIRECTION_CONTRADICTION, invalidates: [direct_direction]}
+    original_hard_guard: {scope: INCIDENT_CONTRADICTION, invalidates: [same_incident]}
+  paths:
+    request: [/session_context/task_id, /request_id, /data/request_id, /http/request_id]
+    epoch: [/session_context/epoch]
+    scope: [/session_context/scope]
+    process_start: [/process_start_time]
+    object_out: [/response_object_id]
+    object_in: [/request_object_id]
+    application: [/application_id]
+    operation: [/operation, /audit_type]
+    observation: [/log_type]
+    protocol: [/protocol, /proto]
+    auth_src: [/source_ip]
+    auth_sport: [/source_port]
+    auth_dst: [/host_ip]
+    auth_dport: [/destination_port]
+  operation_classes:
+    FileCreate: file_effect
+    exec: execution
+    EXECVE: execution
+    ProcessStart: execution
+    CommandExecution: execution
+    ApplicationRequest: request_observation
+    NetworkConnection: network_observation
+    credential_accepted: authentication
+    session_open: authentication
+    session_snapshot: network_observation
+  compatible_operations:
+    - [file_effect, execution]
+    - [authentication, execution]
+    - [network_observation, authentication]
+    - [network_observation, network_observation]
+  qualified_operation_pairs:
+    execution_context: [[file_effect, execution]]
+    authentication_context: [[authentication, execution]]
+    network_context: [[network_observation, authentication], [network_observation, network_observation]]

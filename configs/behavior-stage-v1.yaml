@@ -1,0 +1,97 @@
+version: behavior-stage-v1
+# Initial conservative policy, not a calibrated probability or tuned GT result.
+ai_confidence_threshold: 0.85
+max_stage_span_seconds: 120
+unknown_max_stage_span_seconds: 30
+semantic_max_field_chars: 2048
+rules:
+  - id: category-reconnaissance-v1
+    all: [{field: category, op: in, values: [reconnaissance]}]
+    behavior: RECONNAISSANCE
+    confidence: 1.0
+  - id: category-initial_access-v1
+    all: [{field: category, op: in, values: [initial_access]}]
+    behavior: INITIAL_ACCESS
+    confidence: 1.0
+  - id: category-web_attack-v1
+    all: [{field: category, op: in, values: [web_attack]}]
+    behavior: WEB_EXPLOIT
+    confidence: 1.0
+  - id: category-process_execution-v1
+    all: [{field: category, op: in, values: [process_execution]}]
+    behavior: EXECUTION
+    confidence: 1.0
+  - id: category-command_execution-v1
+    all: [{field: category, op: in, values: [command_execution]}]
+    behavior: EXECUTION
+    confidence: 1.0
+  - id: category-persistence-v1
+    all: [{field: category, op: in, values: [persistence]}]
+    behavior: PERSISTENCE
+    confidence: 1.0
+  - id: category-privilege_escalation-v1
+    all: [{field: category, op: in, values: [privilege_escalation]}]
+    behavior: PRIVILEGE_ESCALATION
+    confidence: 1.0
+  - id: category-defense_evasion-v1
+    all: [{field: category, op: in, values: [defense_evasion]}]
+    behavior: DEFENSE_EVASION
+    confidence: 1.0
+  - id: category-credential_access-v1
+    all: [{field: category, op: in, values: [credential_access]}]
+    behavior: CREDENTIAL_ACTIVITY
+    confidence: 1.0
+  - id: category-discovery-v1
+    all: [{field: category, op: in, values: [discovery]}]
+    behavior: DISCOVERY
+    confidence: 1.0
+  - id: category-lateral_movement-v1
+    all: [{field: category, op: in, values: [lateral_movement]}]
+    behavior: LATERAL_MOVEMENT
+    confidence: 1.0
+  - id: category-command_and_control-v1
+    all: [{field: category, op: in, values: [command_and_control]}]
+    behavior: COMMAND_AND_CONTROL
+    confidence: 1.0
+  - id: category-collection-v1
+    all: [{field: category, op: in, values: [collection]}]
+    behavior: COLLECTION
+    confidence: 1.0
+  - id: category-exfiltration-v1
+    all: [{field: category, op: in, values: [exfiltration]}]
+    behavior: EXFILTRATION
+    confidence: 1.0
+  - id: category-impact-v1
+    all: [{field: category, op: in, values: [impact]}]
+    behavior: IMPACT
+    confidence: 1.0
+  - id: category-authentication-v1
+    all: [{field: category, op: in, values: [authentication]}]
+    behavior: AUTHENTICATION
+    confidence: 1.0
+  - id: observed-execution-operation-v1
+    all: [{field: alert_type, op: in, values: [ProcessStart, CommandExecution, exec]}]
+    behavior: EXECUTION
+    confidence: 1.0
+  - id: observed-file-operation-v1
+    all: [{field: alert_type, op: in, values: [FileCreate, FileRead, FileModify, read]}]
+    behavior: FILE_ACTIVITY
+    confidence: 1.0
+  - id: observed-network-operation-v1
+    all: [{field: alert_type, op: in, values: [NetworkConnection]}]
+    behavior: NETWORK_ACTIVITY
+    confidence: 1.0
+  - id: observed-authentication-operation-v1
+    all: [{field: alert_type, op: in, values: [credential_accepted, pam_account, session_open]}]
+    behavior: AUTHENTICATION
+    confidence: 1.0
+  - id: observed-network-policy-action-v1
+    all:
+      - {field: category, op: in, values: [unknown]}
+      - {field: action, op: in, values: [allow, deny, drop, block, reject]}
+      - {field: protocol, op: in, values: [TCP, UDP, ICMP, ICMPv6]}
+      - {field: src_ip, op: exists, values: []}
+      - {field: dst_ip, op: exists, values: []}
+    behavior: NETWORK_ACTIVITY
+    confidence: 1.0
+

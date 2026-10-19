@@ -1,0 +1,29 @@
+version: v5-scoring-calibration-research-v1
+deployment: false
+models: [A, B, C]
+policies: [global, evidence_class, strong_anchor, contradiction_gate, mass_floor]
+thresholds:
+  start: 0.40
+  stop: 0.85
+  step: 0.01
+time_floor: 0.8
+weak_ceiling: 0.45
+parent_only_factor: 0.20
+anchor_reliability: 0.90
+anchor_rarity_floor: 0.80
+context_floor: 0.90
+conflict_weight: 0.45
+duplicate_weight: 0.40
+mass_floor: 0.50
+context_threshold_increment: 0.10
+minimum_anchor_strength: 0.60
+observed_zero_weight: 0.15
+sensitivity_multipliers: [0.9, 1.0, 1.1]
+sample_seed: 42
+sample_count_per_background_stratum: 100
+selection:
+  minimum_gt_admitted: 5
+  maximum_hn_admitted: 48
+  maximum_total_admitted_ratio: 1.25
+  prefer: [hn_admitted, gt_missed, policy_complexity, distance_from_0_65, total_admitted]
+  independent_test_available: false

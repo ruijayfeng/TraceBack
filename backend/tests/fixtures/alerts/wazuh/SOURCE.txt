@@ -1,0 +1,1 @@
+Real alert excerpts from user-provided AIT-ADS v1 production alert file; no evaluation annotations.

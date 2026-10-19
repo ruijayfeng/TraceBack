@@ -1,0 +1,10 @@
+contract_version: role-aware-v1
+authorization: user-confirmed-2026-10-16
+read_only_dataset: true
+shared_session_namespace: false
+network_namespace: traceback_semisynthetic_v1.network
+asset_namespace: traceback_semisynthetic_v1.assets
+account_realm: traceback_semisynthetic_v1.accounts
+wazuh_semantic_profile: wazuh_local_v1
+threshold: 0.65
+formula_version: v4

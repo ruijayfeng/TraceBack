@@ -1,0 +1,6 @@
+# Separate native EVE mappings; legacy Wazuh-wrapped Suricata is unchanged.
+normalization:
+  category_mapping_files:
+    - mappings/cptc-suricata-category.yaml
+  severity_mapping_files:
+    - mappings/cptc-suricata-severity.yaml

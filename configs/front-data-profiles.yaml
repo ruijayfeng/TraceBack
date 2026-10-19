@@ -1,0 +1,9 @@
+# Source routing only. Entity scopes come from observed host/account fields;
+# no dataset-wide network/asset namespace or invented fallback account realm.
+sources:
+  ids: {source_namespace: traceback.lab.ids, format_profile: multisource_native_v1, generator: dataset-observed-ids}
+  waf: {source_namespace: traceback.lab.waf, format_profile: multisource_native_v1, generator: dataset-observed-waf}
+  edr: {source_namespace: traceback.lab.edr, format_profile: multisource_native_v1, generator: dataset-observed-edr}
+  firewall: {source_namespace: traceback.lab.firewall, format_profile: multisource_native_v1, generator: dataset-observed-firewall}
+  host_audit: {source_namespace: traceback.lab.host_audit, format_profile: multisource_native_v1, generator: dataset-observed-host_audit}
+  authentication: {source_namespace: traceback.lab.authentication, format_profile: multisource_native_v1, generator: dataset-observed-authentication}

@@ -1,0 +1,22 @@
+# Native priority: lower is more severe. Semantic normalization, no tuning.
+# https://docs.suricata.io/en/suricata-6.0.20/rules/meta.html#priority
+schema_version: '1.0'
+mapping_type: severity
+source_type: suricata
+default: unknown
+rules:
+  - id: native-priority-1-high
+    match:
+      all:
+        - {field: raw_severity, op: eq, value: 1}
+    output: high
+  - id: native-priority-2-medium
+    match:
+      all:
+        - {field: raw_severity, op: eq, value: 2}
+    output: medium
+  - id: native-priority-3-low
+    match:
+      all:
+        - {field: raw_severity, op: eq, value: 3}
+    output: low

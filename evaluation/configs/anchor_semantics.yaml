@@ -1,0 +1,40 @@
+version: v5.1-anchor-semantics-development-v1
+DEVELOPMENT_ONLY: true
+deployment: false
+REFERENCE_THRESHOLD: 0.65
+TARGET_GT_RECALL: 1.0
+TARGET_HN_REJECTION: 0.95
+TARGET_WORST_MARGIN: 0.05
+TARGET_CLASS_BALANCE: 0.5
+acceptance:
+  candidate_recall: 1.0
+  per_positive_scenario_recall: 0.9
+  per_negative_scenario_rejection: 0.9
+  require_existing_development_and_stress: true
+  no_post_evaluation_formula_revision: true
+formula:
+  unknown_compatibility: 0.5
+  identity_reliability: 0.9
+  identity_rarity_floor: 0.8
+  time_floor: 0.8
+  parent_only_factor: 0.2
+  weak_ceiling: 0.45
+  minimum_weak_groups: 2
+  behavior_minimum: 0.7
+  task_kinds: [request, transaction, operation]
+  context_kinds: [network_session, auth_session, application_session, login_session, connection]
+  context_roles: [worker, daemon, pool, service, session]
+  task_roles: [request, operation, execution, transaction]
+  evidence_paths:
+    epoch: [/session_context/epoch]
+    start: [/session_context/start]
+    end: [/session_context/end]
+    task: [/session_context/task_id]
+    role: [/session_context/role]
+    scope: [/session_context/scope]
+    request: [/request_id, /http/request_id, /data/request_id]
+    transaction: [/tx_id, /data/tx_id]
+stress:
+  seed: 5101826
+  repetitions: 12
+  description: Synthetic native-schema development stress; no independent-validation claim.

@@ -10,7 +10,25 @@ from app.utils.stable_id import content_digest
 
 ProjectionKind = Literal['trace', 'correlation', 'transaction', 'direct_reference',
                          'object', 'file_hash', 'protocol', 'direction', 'source_role',
-                         'destination_role', 'service', 'operation']
+                         'destination_role', 'service', 'operation', 'behavior']
+
+
+class TemporalPolicy(StrictModel):
+    min_seconds: PositiveInt = 5
+    fallback_seconds: PositiveInt = 30
+    max_seconds: PositiveInt = 300
+    min_intervals: Annotated[int, Field(ge=2)] = 3
+
+    @model_validator(mode='after')
+    def bounds(self):
+        if not self.min_seconds <= self.fallback_seconds <= self.max_seconds:
+            raise ValueError('temporal_min_fallback_max_must_be_ordered')
+        return self
+
+
+class CommonEntityPolicy(StrictModel):
+    min_count: Annotated[int, Field(ge=2)] = 10
+    ratio: Annotated[float, Field(gt=0, le=1)] = 0.1
 
 
 class CommunityConfig(StrictModel):
@@ -23,6 +41,8 @@ class CommunityConfig(StrictModel):
     max_candidates_per_alert: PositiveInt
     hot_host_min_count: PositiveInt
     hot_host_ratio: Annotated[float, Field(gt=0, le=1)]
+    temporal: TemporalPolicy = Field(default_factory=TemporalPolicy)
+    common_entities: CommonEntityPolicy = Field(default_factory=CommonEntityPolicy)
     projections: dict[str, dict[ProjectionKind, list[Pointer]]]
 
     @model_validator(mode='after')
@@ -34,6 +54,8 @@ class CommunityConfig(StrictModel):
             raise ValueError('tier_windows_must_descend_within_lifetime')
         if self.max_weak_members > self.max_community_members:
             raise ValueError('weak_member_cap_exceeds_total_cap')
+        if self.temporal.max_seconds > self.max_community_span_seconds:
+            raise ValueError('temporal_max_exceeds_community_lifetime')
         for profile, fields in self.projections.items():
             if profile not in {'multisource_native_v1', 'suricata_eve_v1', 'wazuh_json_v1'}:
                 raise ValueError('undeclared_projection_profile')

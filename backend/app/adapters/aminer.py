@@ -52,10 +52,13 @@ class AMinerAdapter(AlertAdapter):
                 name = "src_ip" if "/query/" in path else "dst_ip" if "/reply/" in path or "/forwarded/" in path else None
             elif path.endswith("/pid"):
                 process_fields["pid"] = integer(value)
+                pointers['process.pid'] = '/AnalysisComponent/AffectedLogAtomValues/'+str(index)
             elif path.endswith("/exe"):
                 process_fields["executable"] = text(value)
+                pointers['process.executable'] = '/AnalysisComponent/AffectedLogAtomValues/'+str(index)
             elif path.endswith("/comm/comm"):
                 process_fields["name"] = text(value)
+                pointers['process.name'] = '/AnalysisComponent/AffectedLogAtomValues/'+str(index)
             if name and name not in facts:
                 facts[name] = value
                 pointers[name] = "/AnalysisComponent/AffectedLogAtomValues/" + str(index)

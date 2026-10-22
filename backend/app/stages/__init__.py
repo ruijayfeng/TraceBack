@@ -1,4 +1,4 @@
-"""Community -> Behavior -> Stage. No downstream edge reconstruction."""
+"""Alert-level Behavior; Stage consumes precomputed annotations after Community."""
 from .aggregation import aggregate_stages
 from .behavior import normalize_behavior
 from .config import load_stage_config, StageConfig

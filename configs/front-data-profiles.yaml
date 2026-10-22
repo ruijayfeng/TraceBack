@@ -1,9 +1,63 @@
-# Source routing only. Entity scopes come from observed host/account fields;
-# no dataset-wide network/asset namespace or invented fallback account realm.
+# Routing and explicit deployment authority contracts. These are operator-owned
+# semantics, not inferred from matching field names. No network flow authority.
+# Request and connection issuers are separately declared. A connection token
+# still requires compatible native endpoints and a complete tuple witness.
+# Host aliases expire 15 minutes outside their native co-observation envelope;
+# conflicting assets refuse projection across the entire effective scope.
+identity_contracts:
+  request: &request_authority
+    kind: request
+    authority_domain: traceback.lab.application-request-ids
+    deployment_scope: traceback.lab
+    network_scope: traceback.lab.monitored-assets
+    token_pointer: /request_id
+    max_age_seconds: 600
+  connection: &connection_authority
+    kind: connection
+    authority_domain: traceback.lab.native-connection-ids
+    deployment_scope: traceback.lab
+    network_scope: traceback.lab.monitored-assets
+    token_pointer: /connection_id
+    max_age_seconds: 900
+  host: &host_authority
+    authority_domain: traceback.lab.native-asset-inventory
+    deployment_scope: traceback.lab
+    network_scope: traceback.lab.monitored-assets
+    max_alias_age_seconds: 900
+  auth: &auth_authority
+    authority_domain: traceback.lab.host-logon-tokens
+    deployment_scope: traceback.lab
+    session_type: host_authentication_logon
+    token_pointer: /logon_id
+    start_operations: [session_open]
+    close_operations: [logout, session_close, logoff]
+    lifecycle_semantics: host_token_until_close
 sources:
   ids: {source_namespace: traceback.lab.ids, format_profile: multisource_native_v1, generator: dataset-observed-ids}
-  waf: {source_namespace: traceback.lab.waf, format_profile: multisource_native_v1, generator: dataset-observed-waf}
-  edr: {source_namespace: traceback.lab.edr, format_profile: multisource_native_v1, generator: dataset-observed-edr}
-  firewall: {source_namespace: traceback.lab.firewall, format_profile: multisource_native_v1, generator: dataset-observed-firewall}
-  host_audit: {source_namespace: traceback.lab.host_audit, format_profile: multisource_native_v1, generator: dataset-observed-host_audit}
-  authentication: {source_namespace: traceback.lab.authentication, format_profile: multisource_native_v1, generator: dataset-observed-authentication}
+  waf: {source_namespace: traceback.lab.waf, format_profile: multisource_native_v1, generator: dataset-observed-waf, identity_authorities: {host: *host_authority, contexts: [*request_authority]}}
+  edr: {source_namespace: traceback.lab.edr, format_profile: multisource_native_v1, generator: dataset-observed-edr, identity_authorities: {host: *host_authority, auth_session: *auth_authority, contexts: [*request_authority, *connection_authority]}}
+  firewall: {source_namespace: traceback.lab.firewall, format_profile: multisource_native_v1, generator: dataset-observed-firewall, identity_authorities: {contexts: [*connection_authority]}}
+  host_audit: {source_namespace: traceback.lab.host_audit, format_profile: multisource_native_v1, generator: dataset-observed-host_audit, identity_authorities: {host: *host_authority}}
+  authentication:
+    source_namespace: traceback.lab.authentication
+    format_profile: multisource_native_v1
+    generator: dataset-observed-authentication
+    identity_authorities:
+      host: *host_authority
+      contexts:
+        - kind: connection
+          authority_domain: traceback.lab.native-connection-ids
+          deployment_scope: traceback.lab
+          network_scope: traceback.lab.monitored-assets
+          token_pointer: /connection_id
+          max_age_seconds: 900
+          destination_ip_pointer: /host_ip
+      auth_session:
+        authority_domain: traceback.lab.host-logon-tokens
+        deployment_scope: traceback.lab
+        session_type: host_authentication_logon
+        token_pointer: /logon_id
+        start_operations: [session_open]
+        close_operations: [logout, session_close, logoff]
+        lifecycle_semantics: host_token_until_close
+        equivalent_token_pointers: [/session_id]

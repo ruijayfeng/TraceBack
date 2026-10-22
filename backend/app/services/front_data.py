@@ -1,10 +1,16 @@
-"""Multi-source front-data pipeline, ending at candidate handoff (no scoring)."""
+"""NOT_OFFICIAL_ANALYSIS_PIPELINE: offline projection/index diagnostics only.
+
+This preserves historical inspection semantics (all supplied CanonicalAlerts).
+Official analysis starts at app.services.alert_pipeline.load_alert_pipeline.
+"""
 from collections import Counter
 from dataclasses import dataclass
 
 from app.correlation.candidates import generate_candidates
 from app.correlation.index import AlertIndex
 from app.entities.extraction import extract_entities
+
+PIPELINE_ROLE = 'NOT_OFFICIAL_ANALYSIS_PIPELINE'
 
 
 @dataclass
@@ -44,7 +50,7 @@ def index_front_data(alerts, settings, config, *, groups=(), counts=None):
     entity_counts = Counter(e.type.value.lower() for e in result.entities)
     key_counts = Counter(r.kind for r in index.context_refs.values())
     key_counts.update(entity_counts)
-    summary = dict(contract_version='front-data-v1', total_alerts=n,
+    summary = dict(contract_version='front-data-v1', pipeline_role=PIPELINE_ROLE, total_alerts=n,
         input_alerts=sum(counts.values()) if counts is not None else len(projected),
         duplicate_imports=(sum(counts.values()) if counts is not None else len(projected))-n,
         by_source=dict(sorted((counts or Counter(a.source_type.value for a in result.alerts)).items())),

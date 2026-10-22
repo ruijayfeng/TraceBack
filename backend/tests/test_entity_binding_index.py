@@ -71,7 +71,8 @@ def test_asset_id_precedes_hostname_and_process_fallback_is_host_local(cfg, norm
 def test_guid_without_host_is_observed_identity(cfg, normalization):
     r=run([record(1,process_guid='observed-guid'),record(2,process_guid='observed-guid')],cfg,normalization)
     assert len([e for e in r.entities if e.type.value=='PROCESS'])==1
-    assert sizes(r)==[2]
+    # Identity is retained, but Process alone no longer admits membership.
+    assert sizes(r)==[1,1]
 
 
 @pytest.mark.parametrize('missing', ['src_ip','src_port','dst_ip','dst_port','protocol'])
@@ -130,7 +131,10 @@ def test_context_identity_field_and_all_projection_pointers_are_preserved(cfg, n
     first=run(rows,cfg,normalization)
     second=run(list(reversed(rows)),cfg,normalization)
     assert first.result==second.result and first.entities==second.entities
-    assert sizes(first)==[1,1]
+    assert sizes(first)==[2]
+    # Distinct typed request/task aliases still do not bind. The two alerts
+    # now meet via the explicitly permitted Host + Account context rule.
+    assert all(e.identity_kind == 'host_account' for c in first.result.incident_candidates for e in c.matching_evidence)
     for p in profiles(first,cfg):
         from app.models.base import resolve_pointer
         for b in p.bindings:

@@ -9,7 +9,7 @@ normalization:
     - mappings/front-other-category.yaml
   severity_mapping_files:
     - mappings/wazuh-severity.yaml
-    - mappings/suricata-severity.yaml
+    - mappings/cptc-suricata-severity.yaml
     - mappings/aminer-severity.yaml
     - mappings/front-waf-severity.yaml
     - mappings/front-edr-severity.yaml

@@ -1,0 +1,62 @@
+version: stage-evidence-v1
+enabled_evidence_types:
+  - PARENT_CHILD_PROCESS
+  - REQUEST_RESPONSE
+  - OBJECT_CREATE_EXECUTE
+  - OBJECT_HANDOFF
+  - AUTH_ESTABLISH_USE
+  - CONNECTION_ESTABLISH_ACCEPT
+  - EXPLICIT_ATTESTED_RELATION
+  - SAME_PROCESS_INSTANCE
+  - SAME_SCOPED_FLOW
+  - SAME_STRONG_SESSION
+  - SAME_SCOPED_OBJECT
+  - SAME_SCOPED_REQUEST
+  - SAME_TRUSTED_CONNECTION
+  - SAME_SCOPED_TASK
+  - EXPLICIT_RELATED_EVENT
+  - SAME_HOST
+  - SAME_ACCOUNT
+  - SAME_URL
+  - SAME_COMMAND
+  - NETWORK_ENDPOINT_OVERLAP
+  - INCOMPLETE_FLOW
+  - SHARED_PROCESS_DESCRIPTOR
+  - SHARED_FILE_PATH
+# Reversal tolerance only; no maximum relationship age or generic time window.
+# Process lineage uses process birth facts, not observation order.
+reversal_tolerance_seconds:
+  PARENT_CHILD_PROCESS: 0
+  REQUEST_RESPONSE: 0
+  OBJECT_CREATE_EXECUTE: 0
+  OBJECT_HANDOFF: 0
+  AUTH_ESTABLISH_USE: 0
+  CONNECTION_ESTABLISH_ACCEPT: 0
+  EXPLICIT_ATTESTED_RELATION: 0
+request_operations: [request, Request, HTTPRequest]
+response_operations: [response, Response, HTTPResponse]
+session_start_operations: [LOGIN_SUCCESS, SESSION_OPEN, AUTH_SUCCESS, session_open, SessionStart, credential_accepted]
+# Unknown actions and failed authentication are not certified session use.
+session_use_operations: [FileRead, FileCreate, FileModify, ProcessStart, CommandExecution, NetworkConnection, read, exec, EXECVE, session_activity, SESSION_USE]
+connection_initiate_operations: [NetworkConnection]
+connection_accept_operations: [credential_accepted]
+object_create_operations: [FileCreate, ObjectCreate]
+object_execute_operations: [ProcessStart, ObjectExecute, exec, EXECVE, ObjectConsume, ObjectLoad]
+directional_reference_fields:
+  multisource_native_v1: [/parent_event_id, /caused_by, /triggered_by]
+  wazuh_json_v1: [/data/parent_event_id, /data/caused_by, /data/triggered_by]
+associative_reference_fields:
+  multisource_native_v1: [/direct_reference, /related_event]
+  wazuh_json_v1: [/data/related_event]
+direction_conflict_policy: UNDIRECTED_IF_STRONG_ASSOCIATION
+# Context size never vetoes independent directional/native relationship proof.
+# Exclusivity is measured against ALL current Stage postings, not candidate pairs.
+exclusive_context_policy: TWO_STAGE_COMPLETE_UNPOLLUTED_IDENTITY
+exclusive_context_evidence_types:
+  - SAME_PROCESS_INSTANCE
+  - SAME_SCOPED_FLOW
+  - SAME_STRONG_SESSION
+  - SAME_SCOPED_REQUEST
+  - SAME_SCOPED_OBJECT
+  - SAME_TRUSTED_CONNECTION
+  - SAME_SCOPED_TASK

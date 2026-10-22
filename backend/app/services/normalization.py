@@ -22,6 +22,7 @@ from app.utils.stable_id import canonical_json, content_digest, id_for
 
 
 ALGORITHM_VERSION = "preprocessing-v1"
+PIPELINE_ROLE = 'LEGACY_HISTORICAL_REPLAY_NOT_OFFICIAL_ANALYSIS_PIPELINE'
 
 
 @dataclass

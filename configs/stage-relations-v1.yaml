@@ -8,6 +8,8 @@ evidence:
   attested_relation: {rank: 1, strength: 0.95}
   object_create_execute: {rank: 2, strength: 0.9}
   object_handoff: {rank: 2, strength: 0.9}
+  # Exact instance identity supports association, independently of direction.
+  same_instance: {rank: 2, strength: 0.85}
   shared_process_instance: {rank: 3, strength: 0.7}
   shared_binding: {rank: 3, strength: 0.6}
   shared_entity: {rank: 4, strength: 0.45}

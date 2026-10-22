@@ -32,10 +32,11 @@ def record(i, source='edr', time=0, **fields):
     return dict(timestamp=t.isoformat(), source_type=source, event_id=str(i), **fields)
 
 
-def run(raws, cfg, normalization, overrides=None):
+def run(raws, cfg, normalization, overrides=None, *, behavior_config=None, resolver=None):
     ss = {s: replace(settings(s), **(overrides or {}).get(s, {})) for s in {r['source_type'] for r in raws}}
     aa = [MultiSourceAdapter(normalization, ss[r['source_type']], r['source_type']).convert(r) for r in raws]
-    return prepare_communities(aa, {s.source_namespace:s for s in ss.values()}, cfg)
+    return prepare_communities(aa, {s.source_namespace:s for s in ss.values()}, cfg,
+                               behavior_config=behavior_config, resolver=resolver)
 
 
 def sizes(r):
@@ -100,7 +101,8 @@ def test_host_account_with_operation_continuity_and_distinct_sessions(cfg, norma
     assert sizes(r) == [2]
     assert r.result.incident_candidates[0].matching_evidence[0].match_reason == 'HOST_ACCOUNT_CONTINUITY'
     assert sizes(run([dict(a,session_id='s1'),dict(a,event_id='2',session_id='s2')],cfg,normalization)) == [1,1]
-    assert sizes(run([record(1,hostname='h',user='Alice'),record(2,hostname='h',user='Alice')],cfg,normalization)) == [1,1]
+    # Host + Account is now an explicit two-factor context rule.
+    assert sizes(run([record(1,hostname='h',user='Alice'),record(2,hostname='h',user='Alice')],cfg,normalization)) == [2]
 
 
 def test_time_severity_signature_port_source_and_ip_cannot_group(cfg, normalization):
@@ -108,14 +110,13 @@ def test_time_severity_signature_port_source_and_ip_cannot_group(cfg, normalizat
     assert sizes(run(sparse,cfg,normalization)) == [1]*50
 
 
-def test_host_window_and_semantic_continuity(cfg, normalization):
+def test_host_and_semantic_continuity_require_independent_context(cfg, normalization):
     a=record(1,'waf',server_host='h',rule_id='942100',rule_name='SQL injection pattern')
     # Known mapped category supplied via the existing source mapping, not an inferred stage.
     r=run([a,dict(a,event_id='2')],cfg,normalization)
     assert r.alerts[0].category.value == 'web_attack'
-    assert sizes(r) == [2]
-    assert r.result.incident_candidates[0].matching_evidence[0].match_level == 4
-    assert any(p.pointer=='/rule_name' for p in r.result.incident_candidates[0].matching_evidence[0].supporting_evidence)
+    assert sizes(r) == [1, 1]
+    assert r.result.statistics['rejection_counts']['HOST_REQUIRES_INDEPENDENT_CONTEXT'] > 0
     assert sizes(run([a,dict(a,event_id='2',timestamp='2026-01-01T02:00:00Z')],cfg,normalization)) == [1,1]
 
 

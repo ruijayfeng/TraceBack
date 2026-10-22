@@ -51,7 +51,11 @@ def test_process_description_and_pid_only_do_not_invent_instances(config):
     s=settings();adapter=WazuhAdapter(config,s)
     alerts=[adapter.convert(synthetic_record(id=str(i),data={"host":"h","process":{"pid":7}})) for i in range(2)]
     result=extract_entities(alerts,{s.source_namespace:s})
-    assert len([e for e in result.entities if e.type==EntityType.PROCESS]) == 1
+    # Incomplete PID observations are retained individually, not certified as a
+    # common process instance merely because host and PID happen to agree.
+    assert len([e for e in result.entities if e.type==EntityType.PROCESS]) == 2
+    assert set(result.alerts[0].entity_ids).intersection(result.alerts[1].entity_ids) == {
+        e.entity_id for e in result.entities if e.type==EntityType.HOST}
     assert all(not a.relations for a in result.alerts)
     raw=full_record();del raw["data"]["process"]["start_time"]
     result=extract_entities([adapter.convert(raw)],{s.source_namespace:s})

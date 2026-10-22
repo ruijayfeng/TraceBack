@@ -100,6 +100,8 @@ class WorkbenchQueries:
 
 def install_workbench(app, *, root=None, host_ui=True):
     q = app.state.queries
+    from .stage_workbench import install_stage_workbench
+    install_stage_workbench(app, root or q.root)
     reports = ReportStore(q)
     projection = WorkbenchQueries(q, reports)
     app.state.workbench, app.state.presentation_reports = projection, reports

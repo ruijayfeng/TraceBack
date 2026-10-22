@@ -13,6 +13,7 @@ from .normalization import file_path, hostname, ip, url
 class EntityResult:
     alerts: list
     entities: list[Entity]
+    identity_projection: object = None
 
 
 def process_value(process, alert):

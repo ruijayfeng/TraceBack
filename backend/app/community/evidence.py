@@ -13,6 +13,14 @@ from app.utils.stable_id import canonical_json, content_digest
 
 PROJECTION_VERSION = 'entity-binding-index-v2'
 
+# Evidence tiers are semantic, independent of historical numeric match levels.
+STRONG_KINDS = frozenset({'request', 'flow', 'session', 'connection',
+                         'application_session', 'task', 'direct_reference', 'cross_source_process_instance'})
+
+
+def evidence_tier(kind):
+    return 'A' if kind in STRONG_KINDS else 'C' if kind == 'network_ip' else 'B'
+
 @dataclass(frozen=True)
 class Binding:
     level: int
@@ -38,6 +46,8 @@ class Profile:
     contexts: dict[str, set[str]] = field(default_factory=dict)
     observed: dict[str, list[tuple[str, str]]] = field(default_factory=dict)
     weak_contexts: list[tuple[str, str, str]] = field(default_factory=list)
+    behaviors: set[str] = field(default_factory=set)
+    behavior_pointers: set[str] = field(default_factory=set)
 
 
 def seconds(timestamp):
@@ -104,6 +114,20 @@ def profile(alert, entities, settings, config):
             if value:
                 values.append((value, pointer))
         p.observed[kind] = values
+
+    # Reuse observed semantics only. No Stage/ATT&CK mapping is performed here.
+    if p.observed.get('behavior'):
+        p.behaviors = {'behavior:' + value.casefold() for value, _ in p.observed['behavior']}
+        p.behavior_pointers = {pointer for _, pointer in p.observed['behavior']}
+    elif alert.category.value != 'unknown':
+        p.behaviors = {canonical_json(dict(category=alert.category.value, signature=alert.signature))}
+        p.behavior_pointers = {alert.field_provenance[k].raw_pointer for k in ('category', 'signature')
+                               if k in alert.field_provenance and alert.field_provenance[k].raw_pointer}
+
+    for kind, value, pointer in p.weak_contexts:
+        if kind in ('src_ip', 'dst_ip'):
+            add(5, 'network_ip', dict(scope=settings.network_namespace or alert.source_namespace, value=value),
+                [pointer], projection='network_auxiliary')
 
     if alert.source_record_id:
         add(1, 'direct_reference', dict(scope=alert.source_namespace, value=alert.source_record_id),
@@ -185,57 +209,86 @@ def shared_context(left, right):
     return any(left.contexts[s] & right.contexts[s] for s in left.contexts.keys() & right.contexts.keys())
 
 
-def match(left, right, lb, rb, config, hot_hosts):
+def match(left, right, lb, rb, config, common):
     """One evidence tier wins; auxiliary values never accumulate into a score."""
     from .models import MatchingEvidence
     level, kind = lb.level, lb.kind
     if lb.key != rb.key:
         return None, 'IDENTITY_MISMATCH'
-    if lb.projection in ('context', 'entity', 'incomplete_binding'):
+    if lb.projection in ('context', 'entity', 'incomplete_binding') and kind != 'core_account':
         return None, 'RECALL_ONLY_' + lb.projection.upper()
     delta = abs(left.seconds-right.seconds)
-    if delta > config.windows_seconds[str(level)]:
+    tier = evidence_tier(kind)
+    if tier == 'A' and delta > config.windows_seconds[str(level)]:
         return None, 'TIER_WINDOW_EXCEEDED'
     if kind == 'direct_reference' and lb.role == rb.role:
         return None, 'REFERENCE_REQUIRES_RECORD_ENDPOINT'
     if kind == 'process_instance' and lb.role == rb.role == 'parent_process':
         return None, 'COMMON_PARENT_IS_NOT_HANDOFF'
+    hosts = left.hosts & right.hosts
+    accounts = left.accounts & right.accounts
+    processes = left.processes & right.processes
+    behavior = bool(left.behaviors & right.behaviors)
+    if kind == 'process_instance' and not (hosts or behavior):
+        return None, 'PROCESS_REQUIRES_HOST_OR_BEHAVIOR'
     if kind == 'object':
         handoff = kind == 'object' and {lb.role, rb.role} == {'response_object_id', 'request_object_id'}
         if not handoff and not shared_context(left, right):
             return None, 'OBJECT_REQUIRES_HANDOFF_OR_BOUND_CONTEXT'
-    if level >= 3:
+    if tier != 'A':
         if left.hosts and right.hosts and left.hosts.isdisjoint(right.hosts):
             return None, 'DIFFERENT_TARGETS_WITHOUT_BINDING'
         if context_conflict(left, right):
             return None, 'DISTINCT_CONTEXTS_BLOCK_WEAK_MATCH'
         if left.accounts and right.accounts and left.accounts.isdisjoint(right.accounts):
             return None, 'DISTINCT_ACCOUNTS_BLOCK_WEAK_MATCH'
-        if left.alert.process and right.alert.process:
+        if kind != 'process_instance' and left.alert.process and right.alert.process:
             a, b = left.alert.process, right.alert.process
             if a.pid is not None and b.pid is not None and a.pid != b.pid:
                 return None, 'DISTINCT_PROCESSES_BLOCK_WEAK_MATCH'
             if a.start_time and b.start_time and a.start_time != b.start_time:
                 return None, 'REUSED_PID_BLOCKS_WEAK_MATCH'
-        if kind == 'host_process' and not (left.accounts & right.accounts or shared_context(left, right)):
+            if any(getattr(a, name) and getattr(b, name) and getattr(a, name) != getattr(b, name)
+                   for name in ('guid', 'instance_id')):
+                return None, 'DISTINCT_PROCESS_INSTANCES_BLOCK_WEAK_MATCH'
+        if kind == 'host_process' and not (accounts or behavior or shared_context(left, right)):
             return None, 'PROCESS_DESCRIPTOR_REQUIRES_ACCOUNT_OR_CONTEXT'
         if kind == 'host_account':
-            # Different native sessions are not universally hard conflicts, but
-            # they cannot support this weaker membership rule.
-            service_values = {v for v, _ in left.observed.get('service', [])} & {v for v, _ in right.observed.get('service', [])}
-            operation_values = {v for v, _ in left.observed.get('operation', [])} & {v for v, _ in right.observed.get('operation', [])}
-            if not shared_context(left, right) and not (service_values and operation_values):
-                return None, 'ACCOUNT_REQUIRES_CONTINUITY'
-            if left.hosts & hot_hosts and not shared_context(left, right):
-                return None, 'HOT_HOST_REQUIRES_STRONGER_CONTEXT'
+            if (hosts | accounts) & common and not (processes or behavior or shared_context(left, right)):
+                return None, 'HIGH_DEGREE_CONTEXT_REQUIRES_EXTRA_EVIDENCE'
         if kind == 'host':
-            if left.hosts & hot_hosts:
-                return None, 'HOT_HOST_REQUIRES_STRONGER_CONTEXT'
-            a, b = left.alert, right.alert
-            if a.category.value == 'unknown' or a.category != b.category or not a.signature or a.signature != b.signature or a.source_namespace != b.source_namespace:
+            if not behavior:
                 return None, 'HOST_REQUIRES_SEMANTIC_CONTINUITY'
+            if hosts & common and not (processes or accounts):
+                return None, 'HIGH_DEGREE_CONTEXT_REQUIRES_EXTRA_EVIDENCE'
+            if not (processes or accounts or shared_context(left, right)):
+                return None, 'HOST_REQUIRES_INDEPENDENT_CONTEXT'
+        if kind == 'core_account':
+            if not behavior:
+                return None, 'ACCOUNT_REQUIRES_BEHAVIOR'
+            if accounts & common and not (hosts or processes):
+                return None, 'HIGH_DEGREE_CONTEXT_REQUIRES_EXTRA_EVIDENCE'
+            if not (hosts or processes or shared_context(left, right)):
+                return None, 'ACCOUNT_REQUIRES_INDEPENDENT_CONTEXT'
+        if kind == 'network_ip':
+            if not behavior:
+                return None, 'NETWORK_REQUIRES_BEHAVIOR'
+            if lb.key in common and not (hosts or processes or accounts):
+                return None, 'HIGH_DEGREE_IP_REQUIRES_CONTEXT'
+            if not (hosts or processes or accounts or shared_context(left, right)):
+                return None, 'NETWORK_REQUIRES_INDEPENDENT_CONTEXT'
     refs = [EvidencePointer(alert_id=p.alert.alert_id, pointer=pointer, side='shared')
             for p, binding in ((left, lb), (right, rb)) for pointer in binding.pointers]
+    if tier != 'A':
+        shared_entities = hosts | accounts | processes
+        for p in (left, right):
+            refs += [EvidencePointer(alert_id=p.alert.alert_id, pointer=o.raw_pointer, side='shared')
+                     for o in p.alert.entity_occurrences if o.entity_id in shared_entities]
+            if behavior:
+                refs += [EvidencePointer(alert_id=p.alert.alert_id, pointer=pointer, side='shared')
+                         for pointer in p.behavior_pointers]
+            refs += [EvidencePointer(alert_id=p.alert.alert_id,
+                     pointer=p.alert.field_provenance['timestamp'].raw_pointer, side='shared')]
     if kind in ('object', 'host_account', 'host_process'):
         # Preserve the actual independent continuity fields used by the gate.
         for p in (left, right):
@@ -243,21 +296,32 @@ def match(left, right, lb, rb, config, hot_hosts):
             refs += [EvidencePointer(alert_id=p.alert.alert_id, pointer=pointer, side='shared')
                      for k in ('service', 'operation') for _, pointer in p.observed.get(k, [])]
     eids = set(lb.entity_ids) | set(rb.entity_ids)
+    if tier != 'A':
+        eids.update(hosts | accounts | processes)
     if kind == 'host_process':
         common_accounts = left.accounts & right.accounts
         eids.update(common_accounts)
         for p in (left, right):
             refs += [EvidencePointer(alert_id=p.alert.alert_id, pointer=o.raw_pointer, side='shared')
                      for o in p.alert.entity_occurrences if o.entity_id in common_accounts]
-    if kind == 'host':
-        for p in (left, right):
-            refs += [EvidencePointer(alert_id=p.alert.alert_id, pointer=p.alert.field_provenance[k].raw_pointer, side='shared')
-                     for k in ('signature', 'category')]
     reason = dict(process_instance='PROCESS_INSTANCE_OR_LINEAGE_BINDING', host_process='HOST_PROCESS_BINDING',
                   host_account='HOST_ACCOUNT_CONTINUITY', host='HOST_TIME_CONTINUITY',
+                  core_account='ACCOUNT_BEHAVIOR_CONTINUITY', network_ip='IP_BEHAVIOR_TIME',
                   network_roles='NETWORK_ROLE_CONTINUITY').get(kind, kind.upper()+'_BINDING')
+    # Independent telemetry certifies identity, not a scenario merge. Promote
+    # only current-instance observations corroborating the same explicit
+    # command AND object action; a request-less process mention remains bounded
+    # context and cannot bridge several otherwise separate regions.
+    action_handoff = (kind == 'process_instance' and lb.role == rb.role == 'process'
+        and left.alert.source_namespace != right.alert.source_namespace
+        and bool(left.alert.command and left.alert.file)
+        and left.alert.command == right.alert.command and left.alert.file == right.alert.file)
+    if action_handoff:
+        refs += [EvidencePointer(alert_id=p.alert.alert_id,pointer=p.alert.field_provenance[field].raw_pointer,side='shared')
+                 for p in (left,right) for field in ('command','file')]
+    admitted_kind = 'cross_source_process_instance' if action_handoff else kind
     evidence = MatchingEvidence(match_reason=reason, match_level=level,
-        alert_ids=sorted([left.alert.alert_id, right.alert.alert_id]), identity_kind=kind,
+        alert_ids=sorted([left.alert.alert_id, right.alert.alert_id]), identity_kind=admitted_kind,
         identity_key=lb.key, entity_ids=sorted(eids),
         time_delta_seconds=float(delta), supporting_evidence=refs)
     return evidence, None

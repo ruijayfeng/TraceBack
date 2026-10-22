@@ -1,6 +1,8 @@
 """Bounded, time-ordered postings; never scans a global alert/time pair table."""
 from collections import defaultdict, deque
 
+from .evidence import evidence_tier
+
 
 class CommunityIndex:
     def __init__(self, config):
@@ -20,13 +22,14 @@ class CommunityIndex:
             rows = self.postings.get(self.typed_key(binding))
             if not rows:
                 continue
-            window = self.config.windows_seconds[str(binding.level)]
+            window = (self.config.windows_seconds[str(binding.level)] if evidence_tier(binding.kind) == 'A'
+                      else self.config.temporal.max_seconds)
             while rows and profile.seconds-rows[0][0].seconds > window:
                 rows.popleft()
             for other, prior_binding in reversed(rows):
                 self.examined += 1
                 found.append((profile, other, binding, prior_binding))
-        found.sort(key=lambda row: (row[2].level, profile.seconds-row[1].seconds,
+        found.sort(key=lambda row: (evidence_tier(row[2].kind), row[2].level, profile.seconds-row[1].seconds,
                                     row[1].alert.alert_id, row[2].kind, row[2].key, row[3].role))
         # Cap distinct alert neighbors, keeping all evidence for admitted pairs.
         admitted = set()

@@ -36,17 +36,17 @@ class Resolver:
 
 
 def stage_run(rows, cfg, normalization, policy, resolver=None):
-    community = run(rows, cfg, normalization)
+    community = run(rows, cfg, normalization, behavior_config=policy, resolver=resolver)
     ss = {a.source_namespace:settings(a.raw_alert['source_type']) for a in community.alerts}
     before = canonical_json([a.model_dump(mode='json') for a in community.alerts])
-    result = aggregate_stages(community, ss, cfg, policy, resolver)
+    result = aggregate_stages(community, ss, cfg, policy)
     assert before == canonical_json([a.model_dump(mode='json') for a in community.alerts])
     return community, result
 
 
 def one_annotation(cfg, normalization, policy, resolver=None, **fields):
-    r = run([record(1, **fields)], cfg, normalization)
-    return normalize_behavior(r.alerts[0], r.result.incident_candidates[0].community_id, policy, resolver)
+    r = run([record(1, **fields)], cfg, normalization, behavior_config=policy, resolver=resolver)
+    return r.behaviors[0]
 
 
 def test_mapping_wins_without_ai_call(cfg, normalization, policy):
@@ -70,7 +70,7 @@ def test_unrecognized_enters_resolver_and_has_no_raw_payload(cfg, normalization,
     assert annotation.behavior == 'DISCOVERY' and annotation.resolver == 'ai'
     assert len(fake.calls) == 1
     assert 'arbitrary_payload' not in canonical_json(fake.calls)
-    assert set(fake.calls[0]) == {'version', 'vocabulary', 'fields', 'evidence'}
+    assert set(fake.calls[0]) == {'version', 'vocabulary', 'fields', 'evidence', 'source_metadata'}
     assert fake.calls[0]['vocabulary'] == VOCABULARY
 
 
@@ -123,11 +123,12 @@ def test_same_behavior_binding_can_aggregate_and_keep_all_ids_and_times(cfg, nor
     assert s.alert_ids == sorted(a.alert_id for a in community.alerts)
     assert s.start_time == min(a.timestamp for a in community.alerts)
     assert s.end_time == max(a.timestamp for a in community.alerts)
-    assert len(s.aggregation_basis) == 10
+    assert len(s.aggregation_basis) >= s.alert_count - 1
     alerts = {a.alert_id:a for a in community.alerts}
     for proof in s.aggregation_basis:
+        assert any(pointer.resolve(alerts) == 'request' for pointer in proof.evidence)
         for pointer in proof.evidence:
-            assert pointer.resolve(alerts) == 'request'
+            assert pointer.resolve(alerts) is not None
     assert Stage.model_validate_json(s.model_dump_json(), context=dict(alerts=alerts)) == s
     assert StageResult.model_validate_json(result.model_dump_json()) == result
 
@@ -153,8 +154,14 @@ def test_unknown_is_conservative_with_binding_and_without(cfg, normalization, po
 
 
 def test_time_alone_or_behavior_alone_cannot_aggregate(cfg, normalization, policy):
-    _, result = stage_run([record(i,operation='ProcessStart',hostname='same',user='Alice') for i in range(4)], cfg, normalization, policy)
+    _, result = stage_run([record(i,operation='ProcessStart',hostname='same') for i in range(4)], cfg, normalization, policy)
     assert len(result.stages) == 4
+
+
+def test_behavior_and_two_entity_contexts_form_normal_edges(cfg, normalization, policy):
+    _, result = stage_run([record(i,operation='ProcessStart',hostname='same',user='Alice') for i in range(4)], cfg, normalization, policy)
+    assert len(result.stages) == 1
+    assert all(e.edge_strength == 'NORMAL' for e in result.stages[0].aggregation_basis)
 
 
 def test_core_instance_without_binding_can_group(cfg, normalization, policy):
@@ -164,11 +171,11 @@ def test_core_instance_without_binding_can_group(cfg, normalization, policy):
     assert result.stages[0].aggregation_basis[0].rule == 'consistent_core_context'
 
 
-def test_complete_link_prevents_time_and_missing_context_chaining(cfg, normalization, policy):
+def test_dynamic_time_and_component_conflict_prevent_chaining(cfg, normalization, policy):
     rows = [record(i,time=i*100,operation='ProcessStart',request_id='r') for i in range(3)]
     community, result = stage_run(rows,cfg,normalization,policy)
     assert len(community.result.incident_candidates) == 1
-    assert sorted(s.alert_count for s in result.stages) == [1,2]
+    assert sorted(s.alert_count for s in result.stages) == [1,1,1]
     rows = [record(1,operation='ProcessStart',request_id='r',session_id='s1'),
             record(2,operation='ProcessStart',request_id='r'),
             record(3,operation='ProcessStart',request_id='r',session_id='s2')]

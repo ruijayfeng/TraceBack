@@ -14,6 +14,7 @@ from app.models import CanonicalAlert, Category, FieldProvenance, Severity, Sour
 from app.models.base import resolve_pointer
 from app.entities.normalization import file_path, hostname, integer, ip, text, timestamp, url
 from app.utils.stable_id import id_for, nfc, raw_fingerprint
+from .truth import reject_truth
 
 
 @dataclass(frozen=True)
@@ -35,8 +36,12 @@ class AdapterSettings:
     os_type: str | None = None
     semantic_profile: str | None = None
     extraction_contract: str = 'front-data-v1'
+    identity_authorities: dict | None = None
 
     def __post_init__(self):
+        from app.entities.identity_contracts import IdentityAuthorities
+        object.__setattr__(self, 'identity_authorities', IdentityAuthorities.model_validate(
+            self.identity_authorities or {}).model_dump(mode='json', exclude_none=True))
         if self.extraction_contract not in ('front-data-v1', 'legacy-v1'):
             raise ValueError('invalid_extraction_contract')
         for name in ("source_namespace", "format_profile", "generator", "generator_version"):
@@ -60,8 +65,15 @@ class AdapterSettings:
         if self.semantic_profile and self.format_profile != "wazuh_json_v1":
             raise ValueError("semantic_profile_requires_wazuh")
 
+    @property
+    def identity_contract(self):
+        from app.entities.identity_contracts import IdentityAuthorities
+        return IdentityAuthorities.model_validate(self.identity_authorities)
+
     def snapshot(self):
         data = asdict(self)
+        if not self.identity_authorities:
+            data.pop('identity_authorities', None)
         if self.semantic_profile is None:
             data.pop("semantic_profile")
         return data
@@ -87,22 +99,6 @@ class BatchResult:
         return dict(sorted(Counter(r.reason for r in self.rejected).items()))
 
 
-def reject_truth(raw):
-    """Reject contaminated records before they can enter raw_alert or diagnostics."""
-    forbidden = {"label", "labels", "ground_truth", "groundtruth", "gold_chain", "time_label", "event_label",
-                 "attack_timeline", "attack_description", "known_malicious_ip"}
-    def visit(value):
-        if type(value) is dict:
-            for key, child in value.items():
-                if key.lower().replace("-", "_") in forbidden:
-                    raise ValueError("annotation_contamination")
-                visit(child)
-        elif type(value) is list:
-            for child in value:
-                visit(child)
-    visit(raw)
-
-
 class AlertAdapter(ABC):
     def __init__(self, config: EffectiveConfig, settings: AdapterSettings):
         self.config = config
@@ -123,7 +119,10 @@ class AlertAdapter(ABC):
         facts['context_candidates'] = project_candidates(raw, self.settings)
         facts['source_product'] = text(raw.get('source_product')) or text(raw.get('product')) or self.settings.generator
         facts['title'] = text(raw.get('title')) or text(facts.get('signature'))
-        pointers['source_product'] = '/source_product' if raw.get('source_product') else '/product' if raw.get('product') else pointers['source_type']
+        if raw.get('source_product') or raw.get('product'):
+            pointers['source_product'] = '/source_product' if raw.get('source_product') else '/product'
+        else:
+            facts['metadata_provenance'] = {'source_product': 'adapter_settings.generator'}
         if facts['title'] is not None:
             pointers['title'] = '/title' if raw.get('title') else pointers['signature']
         facts["source_namespace"] = self.settings.source_namespace
@@ -138,6 +137,9 @@ class AlertAdapter(ABC):
         metadata = json.dumps(self.settings.snapshot(), ensure_ascii=False, sort_keys=True, separators=(",", ":"))
         transforms["source_type"] += ":" + metadata
         transforms["timestamp"] += ":timezone=" + str(self.normalization.source_timezones.get(self.settings.source_namespace)) + ":epoch_unit=" + str(self.settings.epoch_unit)
+        for name in pointers:
+            if name.endswith('.start_time'):
+                transforms[name] += ':timezone=' + str(self.normalization.source_timezones.get(self.settings.source_namespace))
         for name in ("src_ip", "dst_ip"):
             if name in facts:
                 facts[name] = ip(facts[name])

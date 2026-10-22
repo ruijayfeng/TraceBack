@@ -1,0 +1,40 @@
+version: stage-candidates-v1
+enabled_feature_kinds:
+  - request
+  - session
+  - connection
+  - application_session
+  - task
+  - object
+  - process_instance
+  - native_flow
+  - network_tuple
+  - direct_reference
+  - host_account
+  - file
+  - session_entity
+  - host
+  - url
+  - command
+  - endpoint
+  - endpoint_pair
+  - host_url
+  - host_command
+  - url_endpoint_pair
+  - object_at_observed_host
+  - host_auth_session
+  - connection_endpoints_hint
+  - file_at_host
+# Reuse community-v1.windows_seconds; time never retrieves a pair by itself.
+selective_host_window_tier: '4'
+compound_context_window_tier: '3'
+# A typed connection token corroborated by both endpoints uses the existing
+# binding locality window, rather than the URL/command weak-context window.
+connection_context_window_tier: '1'
+# Reuse community-v1.common_entities (min_count AND ratio), measured in Stages.
+# Common weak keys require an independent compound context; bindings are kept.
+frequency_policy: community_common_entities_on_stage_postings
+# Undeclared network scope stays null. An exact typed connection token AND both
+# observed endpoints may retrieve a local candidate, without asserting identity.
+# Different explicitly declared network namespaces must still remain separate.
+cross_source_connection_recall: token_and_both_endpoints_preserve_declared_network_scope

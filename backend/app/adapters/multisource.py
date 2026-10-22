@@ -67,17 +67,20 @@ class MultiSourceAdapter(AlertAdapter):
                 pidkey=('pid' if name=='process' else 'ppid') if source=='host_audit' else prefix+'process_id'
                 keys=dict(pid=pidkey,start_time=prefix+'process_start_time',name=prefix+'process_name',
                           guid=prefix+'process_guid',instance_id=prefix+'process_instance_id')
-                if name=='process': keys['executable']='executable'
+                keys['executable']='executable' if name=='process' else 'parent_executable'
                 values={k:raw[p] for k,p in keys.items() if raw.get(p) not in (None,'')}
                 if not any(k in values for k in ('pid','name','executable','guid','instance_id')): continue
                 if 'pid' in values: values['pid']=integer(values['pid'])
                 if 'start_time' in values: values['start_time']=self.parse_time(values['start_time'])
                 facts[name]=ProcessRef(**values)
                 pointers[name]='/'+next(p for k,p in keys.items() if k in values)
+                pointers.update({name+'.'+k: '/'+keys[k] for k in values})
             context=dict(raw_severity=raw.get('severity'),vendor_category=raw.get('category'),rule_groups=[])
             if source=='waf' and raw.get('worker_process_id') is not None and raw.get('worker_process_start_time'):
                 facts['process']=ProcessRef(pid=integer(raw['worker_process_id']),start_time=self.parse_time(raw['worker_process_start_time']))
                 pointers['process']='/worker_process_id'
+                pointers['process.pid']='/worker_process_id'
+                pointers['process.start_time']='/worker_process_start_time'
         for path in EXTRA_FIELDS:
             try: value=resolve_pointer(raw,'/'+path)
             except ValueError: continue

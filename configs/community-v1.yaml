@@ -12,10 +12,21 @@ max_witnesses_per_key: 64
 max_candidates_per_alert: 128
 hot_host_min_count: 100
 hot_host_ratio: 0.05
+# Non-binding admission uses prior component cadence: mean(interval) + std.
+# The incoming gap never trains its own acceptance threshold.
+temporal:
+  min_seconds: 5
+  fallback_seconds: 30
+  max_seconds: 300
+  min_intervals: 3
+common_entities:
+  min_count: 10
+  ratio: 0.1
 # Explicit scalar projections, restricted to the declared alert format.
 # No record locators, payload parsing, source-name rules or inferred identities.
 projections:
   multisource_native_v1:
+    behavior: [/behavior, /behavior_label, /normalized_behavior, /attack_type]
     trace: [/trace_id]
     correlation: [/correlation_id]
     transaction: [/transaction_id]
@@ -31,6 +42,7 @@ projections:
   suricata_eve_v1:
     protocol: [/proto]
   wazuh_json_v1:
+    behavior: [/data/behavior, /data/behavior_label, /data/attack_type]
     trace: [/data/trace_id]
     correlation: [/data/correlation_id]
     direct_reference: [/data/parent_event_id]

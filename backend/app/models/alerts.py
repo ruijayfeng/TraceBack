@@ -167,6 +167,7 @@ class CanonicalAlert(DomainModel):
     title: Text | None = None
     context_candidates: list[ContextCandidate] = Field(default_factory=list)
     contexts: list[ContextRef] = Field(default_factory=list)
+    identity_binding_ids: list[Text] = Field(default_factory=list)
     extraction_version: Literal['front-data-v1'] | None = None
     sensor: Text | None = None
     source_record_id: Text | None = None
@@ -197,6 +198,7 @@ class CanonicalAlert(DomainModel):
     raw_alert: Annotated[dict[str, Json] | str, Field(min_length=1)]
     raw_fingerprint: Digest
     field_provenance: Annotated[dict[Text, FieldProvenance], Field(min_length=1)]
+    metadata_provenance: dict[Literal['source_product'], Literal['adapter_settings.generator']] = Field(default_factory=dict)
 
     @field_validator("semantic_observations")
     @classmethod
@@ -209,8 +211,8 @@ class CanonicalAlert(DomainModel):
         data = handler(self)
         if not self.semantic_observations:
             data.pop("semantic_observations", None)
-        for key in ('source_product', 'title', 'context_candidates', 'contexts', 'extraction_version'):
-            if getattr(self, key) in (None, []):
+        for key in ('source_product', 'title', 'context_candidates', 'contexts', 'extraction_version', 'metadata_provenance', 'identity_binding_ids'):
+            if getattr(self, key) in (None, [], {}):
                 data.pop(key, None)
         return data
 
@@ -258,10 +260,36 @@ class CanonicalAlert(DomainModel):
             required.add("category")
         if self.severity != Severity.UNKNOWN:
             required.add("severity")
+        for name in self.metadata_provenance:
+            if getattr(self, name) is None or name in self.field_provenance:
+                raise ValueError('metadata_provenance_requires_exclusive_nonnull_field')
+            required.discard(name)
         if not required <= self.field_provenance.keys():
             raise ValueError("field_provenance is missing extracted fact fields")
         for provenance in self.field_provenance.values():
             resolve_pointer(self.raw_alert, provenance.raw_pointer)
+        # New adapters attest each observed ProcessRef child independently.
+        # Historical snapshots with aggregate-only provenance remain readable.
+        for role in ('process', 'parent_process'):
+            process = getattr(self, role)
+            for child in ProcessRef.model_fields:
+                provenance = self.field_provenance.get(role + '.' + child)
+                if provenance is None:
+                    continue
+                value = getattr(process, child) if process else None
+                observed = resolve_pointer(self.raw_alert, provenance.raw_pointer)
+                from app.entities.normalization import integer, timestamp, text
+                if child == 'pid':
+                    observed = integer(observed)
+                elif child == 'start_time':
+                    # Adapter parsing attests the source timezone in transform.
+                    if observed != value:
+                        zone = provenance.transform.partition(':timezone=')[2]
+                        observed = timestamp(observed, source_timezone=zone if zone and zone != 'None' else None)
+                else:
+                    observed = text(observed)
+                if value is None or observed != value:
+                    raise ValueError('process_child_provenance_mismatch')
         if set(self.entity_ids) != {v.entity_id for v in self.entity_occurrences}:
             raise ValueError("entity_ids must match entity_occurrences")
         for occurrence in self.entity_occurrences:

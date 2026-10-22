@@ -20,6 +20,8 @@ from app.adapters.multisource import MultiSourceAdapter
 from app.community import load_community_config, prepare_communities
 from app.community.evidence import PROJECTION_VERSION, profile
 from app.config import load_config, read_yaml
+from app.noise_filter import load_noise_config
+from app.stages.config import load_stage_config
 from app.utils.stable_id import canonical_json, content_digest, id_for
 
 
@@ -69,16 +71,20 @@ def peak_memory_mb():
     return resource.getrusage(resource.RUSAGE_SELF).ru_maxrss/scale
 
 
-def execute(input_path, output, profiles_path, algorithm_path, policy_path):
+def execute(input_path, output, profiles_path, algorithm_path, policy_path, *, noise_policy_path=None):
     input_path, output = Path(input_path).resolve(), Path(output).resolve()
     if any(part.lower() in {'evaluation','ground_truth','hard_negative','attack'} for part in input_path.parts):
         raise ValueError('input_must_be_unannotated_security_alerts')
     before = sha(input_path)
     config = load_config(algorithm_path,deployment_override=ROOT/'configs/front-data-sources.yaml')
     policy = load_community_config(policy_path)
+    noise_policy = load_noise_config(noise_policy_path) if noise_policy_path else load_noise_config()
+    behavior_policy = load_stage_config(ROOT/'configs/behavior-stage-v1.yaml')
     source_profiles = read_yaml(profiles_path)['sources']
     adapters = {s:MultiSourceAdapter(config,AdapterSettings(**v),s) for s,v in source_profiles.items()}
     snapshot = dict(projection_version=PROJECTION_VERSION, normalization=config.snapshot,community=policy.model_dump(mode='json'),
+                    noise_filter=noise_policy.model_dump(mode='json'),
+                    behavior_stage=behavior_policy.model_dump(mode='json'),
                     sources={a.settings.source_namespace:a.settings.snapshot() for a in adapters.values()})
     source_hashes = {p.relative_to(ROOT).as_posix():sha(p) for folder in ('backend/app','configs')
                      for p in sorted((ROOT/folder).rglob('*')) if p.is_file() and '__pycache__' not in p.parts}
@@ -95,16 +101,21 @@ def execute(input_path, output, profiles_path, algorithm_path, policy_path):
                 trace.append(dict(event_id=record.get('event_id'),alert_id=alert.alert_id,source=source))
                 counts[source] += 1
                 yield alert
-    run = prepare_communities(canonical_alerts(),{a.settings.source_namespace:a.settings for a in adapters.values()},policy)
+    run = prepare_communities(canonical_alerts(),{a.settings.source_namespace:a.settings for a in adapters.values()},policy,
+                              noise_config=noise_policy, behavior_config=behavior_policy)
     runtime = time.perf_counter()-started
     if sha(input_path) != before:
         raise ValueError('native_input_changed_during_prediction')
     result = run.result
     effective_hash = content_digest(snapshot)
-    analysis_id = id_for('AnalysisRecord',dict(input_alert_ids=sorted(a.alert_id for a in run.alerts),
+    analysis_id = id_for('AnalysisRecord',dict(input_alert_ids=sorted({a.alert_id for a in run.noise_filter.original_alerts}),
         config_hash=effective_hash,algorithm_version=policy.version+'+'+PROJECTION_VERSION,schema_version='1.0'))
     domain = ROOT/'data/processed'/analysis_id
     detail = ROOT/'outputs/analyses'/analysis_id
+    write_models(domain/'noise_source_alerts.jsonl.gz',run.noise_filter.original_alerts)
+    write_models(domain/'noise_audit.jsonl.gz',run.noise_filter.audit_records)
+    write_models(domain/'alert_behaviors.jsonl.gz',run.behaviors)
+    save(detail/'noise_summary.json',run.noise_filter.statistics)
     write_models(domain/'community_alerts.jsonl.gz',sorted(run.alerts,key=lambda a:a.alert_id))
     write_models(domain/'community_entities.jsonl.gz',sorted(run.entities,key=lambda e:e.entity_id))
     write_models(domain/'incident_candidates.jsonl.gz',result.incident_candidates)
@@ -157,7 +168,7 @@ def execute(input_path, output, profiles_path, algorithm_path, policy_path):
             observable[source]['process_identity'] += int(bool(alert.host and (alert.process.guid or alert.process.instance_id or
                 alert.process.pid is not None and alert.process.start_time)))
     entity_counts = Counter(e.type.value for e in run.entities)
-    summary = dict(**result.statistics, INPUT_ALERTS=sum(counts.values()), CANONICAL_ALERTS=len(run.alerts), REJECTED_ALERTS=0,
+    summary = dict(result.statistics, CANONICAL_ALERTS=len(run.noise_filter.original_alerts), REJECTED_ALERTS=0,
                    **{k+'_ENTITIES':entity_counts[k] for k in ('HOST','ACCOUNT','PROCESS')},
                    **{k.upper()+'_BINDINGS':len(typed_counts[k]) for k in ('request','flow','session','task')},
                    binding_count_unit='distinct_typed_identity_keys_complete_only',
@@ -188,8 +199,9 @@ def main():
     parser.add_argument('--profiles',type=Path,default=ROOT/'configs/front-data-profiles.yaml')
     parser.add_argument('--algorithm',type=Path,default=ROOT/'configs/algorithm-v5-evidence-semantics.yaml')
     parser.add_argument('--policy',type=Path,default=ROOT/'configs/community-v1.yaml')
+    parser.add_argument('--noise-policy', type=Path, default=None)
     args = parser.parse_args()
-    execute(args.input,args.output,args.profiles,args.algorithm,args.policy)
+    execute(args.input,args.output,args.profiles,args.algorithm,args.policy,noise_policy_path=args.noise_policy)
 
 
 if __name__ == '__main__':

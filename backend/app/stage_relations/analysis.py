@@ -45,14 +45,15 @@ def analyze_stage_relations(stage_result, alerts, entities, communities, setting
             primary = candidates[0]
             order, gap, overlap, conflict, consistency, facts = time_facts(a, b, primary, aa, policy)
             semantic = primary.semantic_direction
-            opposite = [e for e in candidates if e.strong and e.rank == primary.rank and
+            opposite = [e for e in candidates if e.semantic_direction is not None and e.rank == primary.rank and
                 e.evidence_strength == primary.evidence_strength and
                 e.semantic_direction.from_stage_id != semantic.from_stage_id] if semantic else []
             direction_conflict = bool(opposite)
             if primary.strong:
-                kind = 'STRONG_UNDIRECTED' if conflict or direction_conflict else 'STRONG_DIRECTED'
+                kind = 'STRONG_UNDIRECTED' if semantic is None or conflict or direction_conflict else 'STRONG_DIRECTED'
                 src, dst = (None, None) if kind == 'STRONG_UNDIRECTED' else (semantic.from_stage_id, semantic.to_stage_id)
-                reason = primary.reason + (' Strong association retained; direction unresolved due to '+
+                reason = primary.reason + (' Strong association retained; shared identity provides no propagation direction.'
+                    if semantic is None else ' Strong association retained; direction unresolved due to '+
                     ('TIME_CONFLICT.' if conflict else 'opposing equally ranked semantic evidence.')
                     if kind == 'STRONG_UNDIRECTED' else ' Semantic direction passes the independent time check.')
             elif not overlap:

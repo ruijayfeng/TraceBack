@@ -1,7 +1,8 @@
-"""Fresh-process, label-free replay of existing production functions.
+"""LEGACY historical correlation comparison, NOT_OFFICIAL_ANALYSIS_PIPELINE.
 
 This file accepts one native input and an empty output directory, never truth.
-Community is measured separately because it has no production handoff today.
+Community is measured separately from the historical reconstruction algorithm.
+Both branches share kept alerts; this is not the current official analysis.
 """
 import argparse
 from collections import Counter
@@ -14,6 +15,7 @@ import sys
 import time
 
 ROOT = Path(__file__).resolve().parents[1]
+PIPELINE_ROLE = 'LEGACY_HISTORICAL_REPLAY_NOT_OFFICIAL_ANALYSIS_PIPELINE'
 sys.path.insert(0, str(ROOT / 'backend'))
 sys.dont_write_bytecode = True
 
@@ -135,6 +137,7 @@ def run(input_path, output):
     print(json.dumps(dict(stage='adapter_complete', **audit)), flush=True)
     if rejected or len(alerts) != parsed:
         save(output / 'runtime_manifest.json', dict(RUNTIME_COMPLETE=False,
+             pipeline_role=PIPELINE_ROLE,
              TASK_RESULT='ATTACK125_ADAPTER_INTEGRATION_BLOCKED', adapter_audit=audit,
              read_allowlist_receipt=sorted(reads), denied_events=denied,
              GROUND_TRUTH_USED_AS_RUNTIME_INPUT=False))
@@ -144,6 +147,9 @@ def run(input_path, output):
         raise ValueError('duplicate_input_identity_requires_explicit_accounting')
     alerts = [unique[k] for k in sorted(unique)]
     community = prepare_communities(alerts, settings, policy)
+    # LEGACY reconstruction comparison only. Even this compatibility branch
+    # must consume the same kept-alert identities as the official boundary.
+    alerts = community.noise_filter.kept_alerts
     dedupe = deduplicate(alerts, config, settings)
     extracted = extract_entities(alerts, settings)
     alerts, entities = extracted.alerts, extracted.entities
@@ -247,6 +253,7 @@ def run(input_path, output):
         raise ValueError('runtime_integrity_guard_failed')
     artifacts = {p.name: sha(p) for p in sorted(output.iterdir()) if p.is_file()}
     manifest = dict(RUNTIME_COMPLETE=True, runtime_completed_at=datetime.now(timezone.utc).isoformat(),
+        pipeline_role=PIPELINE_ROLE,
         GROUND_TRUTH_USED_AS_RUNTIME_INPUT=False, input=str(input_path), input_sha256=before,
         algorithm_version=correlation.record.algorithm_version, config_hash=correlation.record.config_hash,
         mapping_digest=config.mapping_digest, adapter_audit=audit, summary=summary_counts,

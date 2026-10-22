@@ -11,7 +11,8 @@ from .models import Behavior
 
 SemanticField = Literal['source_type', 'alert_type', 'signature', 'category',
     'action', 'process_name', 'executable', 'protocol', 'src_ip', 'dst_ip',
-    'src_port', 'dst_port', 'command', 'file', 'url']
+    'src_port', 'dst_port', 'command', 'file', 'url', 'severity', 'host', 'account', 'session',
+    'pid', 'parent_pid', 'parent_process_name', 'parent_executable', 'method', 'status', 'domain']
 
 
 class Condition(StrictModel):

@@ -1,0 +1,7 @@
+version: noise-filter-v1
+duplicate_window_seconds: 2
+# Empty until an operator declares exact known background observations.
+# Match fields use canonical values; ALL fields must match, without regex/globs.
+# Optional time_pattern: {timezone: UTC, weekdays: [0, 1, 2, 3, 4], start: '01:00:00', end: '02:00:00'}
+# process matches a canonical process name/executable/GUID; path matches file/URL.
+background_rules: []

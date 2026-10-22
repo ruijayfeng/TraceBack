@@ -1,0 +1,1633 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:traceback:attack-step-output:v1.1",
+  "title": "TraceBack readonly Attack Step semantic output v1.1",
+  "$comment": "Future offline output contract. Cross-artifact identity/closure/proof checks V01-V12 are mandatory; schema validity alone is not semantic acceptance.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "contract_version": {
+      "const": "attack-step-semantic-v1.1"
+    },
+    "run_id": {
+      "type": "string",
+      "pattern": "^asrun_[0-9a-f]{64}$"
+    },
+    "dataset_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "input_artifact_digests": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "dataset_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "stage8_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "stage9_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "receipt_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "provenance_receipt_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "dataset_sha256",
+        "stage8_sha256",
+        "stage9_sha256",
+        "receipt_sha256",
+        "provenance_receipt_sha256"
+      ]
+    },
+    "upstream_config_digests": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "community": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "stages": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "candidates": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "evidence": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "community",
+        "stages",
+        "candidates",
+        "evidence"
+      ]
+    },
+    "upstream_contract_versions": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "community": {
+          "const": "community-v1"
+        },
+        "stages": {
+          "const": "behavior-stage-v1"
+        },
+        "candidates": {
+          "const": "stage-candidates-v1"
+        },
+        "evidence": {
+          "const": "stage-evidence-v2"
+        },
+        "chains": {
+          "const": "attack-chain-reconstruction-v1"
+        }
+      },
+      "required": [
+        "community",
+        "stages",
+        "candidates",
+        "evidence",
+        "chains"
+      ]
+    },
+    "graph_input_digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "policy_digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "taxonomy_version": {
+      "const": "attack-step-taxonomy-v1.1"
+    },
+    "semantic_groups": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/group"
+      },
+      "minItems": 0,
+      "uniqueItems": true
+    },
+    "stage_membership_index": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/membership"
+      },
+      "minItems": 0,
+      "uniqueItems": true
+    },
+    "decision_ledger": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/decision"
+      },
+      "minItems": 0,
+      "uniqueItems": true
+    },
+    "projected_relation_view": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/projection"
+      },
+      "minItems": 0,
+      "uniqueItems": true
+    },
+    "evidence_trace_summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "reference_occurrences": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "resolved_reference_occurrences": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unique_alert_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unique_raw_pointer_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "confirmed_group_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "confirmed_groups_with_complete_evidence": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unresolved_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/unresolved_ref"
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "reference_occurrences",
+        "resolved_reference_occurrences",
+        "unique_alert_count",
+        "unique_raw_pointer_count",
+        "confirmed_group_count",
+        "confirmed_groups_with_complete_evidence",
+        "unresolved_refs"
+      ]
+    },
+    "integrity_summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "input_digests_verified": {
+          "const": true
+        },
+        "original_stages_preserved": {
+          "const": true
+        },
+        "original_relations_preserved": {
+          "const": true
+        },
+        "original_chains_preserved": {
+          "const": true
+        },
+        "ground_truth_used_for_grouping": {
+          "const": false
+        },
+        "new_relation_count": {
+          "const": 0
+        },
+        "reversed_relation_count": {
+          "const": 0
+        },
+        "duplicate_primary_membership_count": {
+          "const": 0
+        },
+        "source_stage_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "source_accepted_relation_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "source_rejected_relation_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "source_chain_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unassigned_stage_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "semantic_validation_status": {
+          "const": "PASSED_V01_V12"
+        }
+      },
+      "required": [
+        "input_digests_verified",
+        "original_stages_preserved",
+        "original_relations_preserved",
+        "original_chains_preserved",
+        "ground_truth_used_for_grouping",
+        "new_relation_count",
+        "reversed_relation_count",
+        "duplicate_primary_membership_count",
+        "source_stage_count",
+        "source_accepted_relation_count",
+        "source_rejected_relation_count",
+        "source_chain_count",
+        "unassigned_stage_count",
+        "semantic_validation_status"
+      ]
+    }
+  },
+  "required": [
+    "contract_version",
+    "run_id",
+    "dataset_version",
+    "input_artifact_digests",
+    "upstream_config_digests",
+    "upstream_contract_versions",
+    "graph_input_digest",
+    "policy_digest",
+    "taxonomy_version",
+    "semantic_groups",
+    "stage_membership_index",
+    "decision_ledger",
+    "projected_relation_view",
+    "evidence_trace_summary",
+    "integrity_summary"
+  ],
+  "$defs": {
+    "stage_id": {
+      "type": "string",
+      "pattern": "^stg_[0-9a-f]{64}$"
+    },
+    "chain_id": {
+      "type": "string",
+      "pattern": "^sch_[0-9a-f]{64}$"
+    },
+    "alert_id": {
+      "type": "string",
+      "pattern": "^alt_[0-9a-f]{64}$"
+    },
+    "relation_id": {
+      "type": "string",
+      "pattern": "^scp_[0-9a-f]{64}$"
+    },
+    "semantic_id": {
+      "type": "string",
+      "pattern": "^asp_[0-9a-f]{64}$"
+    },
+    "reason_code": {
+      "enum": [
+        "P1_COMPLETE",
+        "PURPOSE_NOT_PROVEN",
+        "CONTEXT_ONLY",
+        "INCOMPATIBLE_ACTIVITY_IDENTITY",
+        "RELATION_NOT_PURPOSE",
+        "CROSS_CHAIN_CONFIRMATION_UNSUPPORTED",
+        "NO_ACCEPTED_CONNECTION",
+        "GROUP_CONTRADICTION",
+        "MISSING_REQUIRED_EVIDENCE",
+        "REJECTED_RELATION_NOT_SUPPORT",
+        "PRIMARY_MEMBERSHIP_CONFLICT",
+        "SIMILARITY_ONLY",
+        "AMBIGUOUS_PURPOSE",
+        "DISCONNECTED_INDUCED_SUBGRAPH",
+        "INCOMPLETE_MEMBER_COVERAGE"
+      ]
+    },
+    "status": {
+      "enum": [
+        "CONFIRMED",
+        "CANDIDATE",
+        "UNRESOLVED",
+        "REJECTED"
+      ]
+    },
+    "evidence_ref": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "artifact": {
+              "const": "stage8"
+            },
+            "kind": {
+              "const": "stage"
+            },
+            "target_id": {
+              "type": "string",
+              "pattern": "^stg_[0-9a-f]{64}$"
+            },
+            "resolution": {
+              "enum": [
+                "RESOLVED",
+                "MISSING",
+                "INVALID"
+              ]
+            }
+          },
+          "required": [
+            "artifact",
+            "kind",
+            "target_id",
+            "resolution"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "artifact": {
+              "const": "stage8"
+            },
+            "kind": {
+              "const": "behavior_annotation"
+            },
+            "target_id": {
+              "type": "string",
+              "pattern": "^alt_[0-9a-f]{64}$"
+            },
+            "resolution": {
+              "enum": [
+                "RESOLVED",
+                "MISSING",
+                "INVALID"
+              ]
+            }
+          },
+          "required": [
+            "artifact",
+            "kind",
+            "target_id",
+            "resolution"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "artifact": {
+              "const": "stage8"
+            },
+            "kind": {
+              "const": "entity"
+            },
+            "target_id": {
+              "type": "string",
+              "pattern": "^ent_[0-9a-f]{64}$"
+            },
+            "resolution": {
+              "enum": [
+                "RESOLVED",
+                "MISSING",
+                "INVALID"
+              ]
+            }
+          },
+          "required": [
+            "artifact",
+            "kind",
+            "target_id",
+            "resolution"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "artifact": {
+              "const": "stage8"
+            },
+            "kind": {
+              "const": "relation_decision"
+            },
+            "target_id": {
+              "type": "string",
+              "pattern": "^scp_[0-9a-f]{64}$"
+            },
+            "resolution": {
+              "enum": [
+                "RESOLVED",
+                "MISSING",
+                "INVALID"
+              ]
+            }
+          },
+          "required": [
+            "artifact",
+            "kind",
+            "target_id",
+            "resolution"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "artifact": {
+              "const": "stage8"
+            },
+            "kind": {
+              "const": "claim"
+            },
+            "target_id": {
+              "type": "string",
+              "pattern": "^ecl_[0-9a-f]{64}$"
+            },
+            "resolution": {
+              "enum": [
+                "RESOLVED",
+                "MISSING",
+                "INVALID"
+              ]
+            }
+          },
+          "required": [
+            "artifact",
+            "kind",
+            "target_id",
+            "resolution"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "artifact": {
+              "const": "stage8"
+            },
+            "kind": {
+              "const": "observation"
+            },
+            "target_id": {
+              "type": "string",
+              "pattern": "^obs_[0-9a-f]{64}$"
+            },
+            "resolution": {
+              "enum": [
+                "RESOLVED",
+                "MISSING",
+                "INVALID"
+              ]
+            }
+          },
+          "required": [
+            "artifact",
+            "kind",
+            "target_id",
+            "resolution"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "artifact": {
+              "const": "stage8"
+            },
+            "kind": {
+              "const": "validation"
+            },
+            "target_id": {
+              "type": "string",
+              "pattern": "^evc_[0-9a-f]{64}$"
+            },
+            "resolution": {
+              "enum": [
+                "RESOLVED",
+                "MISSING",
+                "INVALID"
+              ]
+            }
+          },
+          "required": [
+            "artifact",
+            "kind",
+            "target_id",
+            "resolution"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "artifact": {
+              "const": "stage8"
+            },
+            "kind": {
+              "const": "raw_pointer"
+            },
+            "target_id": {
+              "type": "string",
+              "pattern": "^erp_[0-9a-f]{64}$"
+            },
+            "resolution": {
+              "enum": [
+                "RESOLVED",
+                "MISSING",
+                "INVALID"
+              ]
+            }
+          },
+          "required": [
+            "artifact",
+            "kind",
+            "target_id",
+            "resolution"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "artifact": {
+              "const": "stage8"
+            },
+            "kind": {
+              "const": "context_posting"
+            },
+            "target_id": {
+              "type": "string",
+              "pattern": "^ctx_[0-9a-f]{64}$"
+            },
+            "resolution": {
+              "enum": [
+                "RESOLVED",
+                "MISSING",
+                "INVALID"
+              ]
+            }
+          },
+          "required": [
+            "artifact",
+            "kind",
+            "target_id",
+            "resolution"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "artifact": {
+              "const": "stage8"
+            },
+            "kind": {
+              "const": "host_alias_binding"
+            },
+            "target_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "resolution": {
+              "enum": [
+                "RESOLVED",
+                "MISSING",
+                "INVALID"
+              ]
+            }
+          },
+          "required": [
+            "artifact",
+            "kind",
+            "target_id",
+            "resolution"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "artifact": {
+              "const": "stage8"
+            },
+            "kind": {
+              "const": "auth_session_binding"
+            },
+            "target_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "resolution": {
+              "enum": [
+                "RESOLVED",
+                "MISSING",
+                "INVALID"
+              ]
+            }
+          },
+          "required": [
+            "artifact",
+            "kind",
+            "target_id",
+            "resolution"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "artifact": {
+              "const": "stage8"
+            },
+            "kind": {
+              "const": "context_binding"
+            },
+            "target_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "resolution": {
+              "enum": [
+                "RESOLVED",
+                "MISSING",
+                "INVALID"
+              ]
+            }
+          },
+          "required": [
+            "artifact",
+            "kind",
+            "target_id",
+            "resolution"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "artifact": {
+              "const": "stage8"
+            },
+            "kind": {
+              "const": "raw_alert_pointer"
+            },
+            "alert_id": {
+              "$ref": "#/$defs/alert_id"
+            },
+            "pointer": {
+              "type": "string",
+              "pattern": "^(?:/(?:[^~/]|~[01])*)+$"
+            },
+            "side": {
+              "enum": [
+                "src",
+                "dst",
+                "shared"
+              ]
+            },
+            "resolution": {
+              "enum": [
+                "RESOLVED",
+                "MISSING",
+                "INVALID"
+              ]
+            }
+          },
+          "required": [
+            "artifact",
+            "kind",
+            "alert_id",
+            "pointer",
+            "side",
+            "resolution"
+          ]
+        }
+      ]
+    },
+    "contradiction": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "enum": [
+            "INCOMPATIBLE_ACTIVITY_IDENTITY",
+            "GROUP_CONTRADICTION"
+          ]
+        },
+        "detail": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_refs": {
+          "type": "array",
+          "items": {
+            "allOf": [
+              {
+                "$ref": "#/$defs/evidence_ref"
+              },
+              {
+                "properties": {
+                  "resolution": {
+                    "const": "RESOLVED"
+                  }
+                }
+              }
+            ]
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "code",
+        "detail",
+        "evidence_refs"
+      ]
+    },
+    "group": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "semantic_step_id": {
+          "$ref": "#/$defs/semantic_id"
+        },
+        "semantic_label": {
+          "enum": [
+            "REQUEST_RESPONSE_TRANSACTION",
+            "WEB_ACTIVITY_CANDIDATE",
+            "REQUEST_EXECUTION_CANDIDATE",
+            "CREDENTIAL_ACTIVITY_CANDIDATE",
+            "HOST_ACTIVITY_CANDIDATE",
+            "UNCLASSIFIED_ACTIVITY"
+          ]
+        },
+        "label_source": {
+          "enum": [
+            "FROZEN_RULE",
+            "EVIDENCE_BOUNDED_DESCRIPTION",
+            "UNCLASSIFIED"
+          ]
+        },
+        "membership_status": {
+          "$ref": "#/$defs/status"
+        },
+        "member_stage_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/stage_id"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "member_chain_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/chain_id"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "evidence_level": {
+          "enum": [
+            "E1",
+            "E2",
+            "E3",
+            "E4",
+            "NONE"
+          ]
+        },
+        "grouping_basis": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "purpose_rule_id": {
+              "enum": [
+                "P1_REQUEST_RESPONSE_TRANSACTION",
+                "NONE"
+              ]
+            },
+            "reason_codes": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/reason_code"
+              },
+              "minItems": 1,
+              "uniqueItems": true
+            },
+            "explanation": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "purpose_rule_id",
+            "reason_codes",
+            "explanation"
+          ]
+        },
+        "source_relation_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/relation_id"
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        },
+        "supporting_alert_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/alert_id"
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        },
+        "purpose_covered_alert_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/alert_id"
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        },
+        "evidence_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/evidence_ref"
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        },
+        "contradictions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/contradiction"
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        },
+        "unresolved_questions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        },
+        "disconnected_members": {
+          "type": "boolean"
+        },
+        "connected_components": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/stage_id"
+            },
+            "minItems": 1,
+            "uniqueItems": true
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "semantic_step_id",
+        "semantic_label",
+        "label_source",
+        "membership_status",
+        "member_stage_ids",
+        "member_chain_ids",
+        "evidence_level",
+        "grouping_basis",
+        "source_relation_ids",
+        "supporting_alert_ids",
+        "purpose_covered_alert_ids",
+        "evidence_refs",
+        "contradictions",
+        "unresolved_questions",
+        "disconnected_members",
+        "connected_components",
+        "limitations"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "membership_status": {
+                "const": "CONFIRMED"
+              }
+            },
+            "required": [
+              "membership_status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "semantic_label": {
+                "const": "REQUEST_RESPONSE_TRANSACTION"
+              },
+              "label_source": {
+                "const": "FROZEN_RULE"
+              },
+              "evidence_level": {
+                "const": "E1"
+              },
+              "member_stage_ids": {
+                "minItems": 2
+              },
+              "member_chain_ids": {
+                "maxItems": 1
+              },
+              "grouping_basis": {
+                "properties": {
+                  "purpose_rule_id": {
+                    "const": "P1_REQUEST_RESPONSE_TRANSACTION"
+                  },
+                  "reason_codes": {
+                    "const": [
+                      "P1_COMPLETE"
+                    ]
+                  }
+                }
+              },
+              "source_relation_ids": {
+                "minItems": 1
+              },
+              "supporting_alert_ids": {
+                "minItems": 2
+              },
+              "purpose_covered_alert_ids": {
+                "minItems": 2
+              },
+              "evidence_refs": {
+                "type": "array",
+                "items": {
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/evidence_ref"
+                    },
+                    {
+                      "properties": {
+                        "resolution": {
+                          "const": "RESOLVED"
+                        }
+                      }
+                    }
+                  ]
+                },
+                "minItems": 1,
+                "contains": {
+                  "properties": {
+                    "kind": {
+                      "const": "claim"
+                    }
+                  },
+                  "required": [
+                    "kind"
+                  ]
+                }
+              },
+              "contradictions": {
+                "maxItems": 0
+              },
+              "unresolved_questions": {
+                "maxItems": 0
+              },
+              "disconnected_members": {
+                "const": false
+              },
+              "connected_components": {
+                "maxItems": 1
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "membership_status": {
+                "const": "CANDIDATE"
+              }
+            },
+            "required": [
+              "membership_status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "evidence_level": {
+                "enum": [
+                  "E1",
+                  "E2",
+                  "E3"
+                ]
+              },
+              "supporting_alert_ids": {
+                "minItems": 1
+              },
+              "evidence_refs": {
+                "minItems": 1,
+                "contains": {
+                  "properties": {
+                    "resolution": {
+                      "const": "RESOLVED"
+                    }
+                  },
+                  "required": [
+                    "resolution"
+                  ]
+                }
+              },
+              "contradictions": {
+                "maxItems": 0
+              },
+              "unresolved_questions": {
+                "minItems": 1
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "membership_status": {
+                "const": "UNRESOLVED"
+              }
+            },
+            "required": [
+              "membership_status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "contradictions": {
+                "maxItems": 0
+              },
+              "unresolved_questions": {
+                "minItems": 1
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "membership_status": {
+                "const": "REJECTED"
+              }
+            },
+            "required": [
+              "membership_status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "contradictions": {
+                "minItems": 1
+              },
+              "grouping_basis": {
+                "properties": {
+                  "reason_codes": {
+                    "contains": {
+                      "enum": [
+                        "INCOMPATIBLE_ACTIVITY_IDENTITY",
+                        "GROUP_CONTRADICTION"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "membership_status": {
+                "not": {
+                  "const": "CONFIRMED"
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "grouping_basis": {
+                "properties": {
+                  "reason_codes": {
+                    "items": {
+                      "not": {
+                        "const": "P1_COMPLETE"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "disconnected_members": {
+                "const": true
+              }
+            },
+            "required": [
+              "disconnected_members"
+            ]
+          },
+          "then": {
+            "properties": {
+              "connected_components": {
+                "minItems": 2
+              },
+              "limitations": {
+                "minItems": 1
+              },
+              "membership_status": {
+                "not": {
+                  "const": "CONFIRMED"
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "disconnected_members": {
+                "const": false
+              }
+            },
+            "required": [
+              "disconnected_members"
+            ]
+          },
+          "then": {
+            "properties": {
+              "connected_components": {
+                "maxItems": 1
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "member_chain_ids": {
+                "minItems": 2
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "disconnected_members": {
+                "const": true
+              },
+              "membership_status": {
+                "not": {
+                  "const": "CONFIRMED"
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "label_source": {
+                "const": "FROZEN_RULE"
+              }
+            },
+            "required": [
+              "label_source"
+            ]
+          },
+          "then": {
+            "properties": {
+              "semantic_label": {
+                "const": "REQUEST_RESPONSE_TRANSACTION"
+              },
+              "grouping_basis": {
+                "properties": {
+                  "purpose_rule_id": {
+                    "const": "P1_REQUEST_RESPONSE_TRANSACTION"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "label_source": {
+                "const": "UNCLASSIFIED"
+              }
+            },
+            "required": [
+              "label_source"
+            ]
+          },
+          "then": {
+            "properties": {
+              "semantic_label": {
+                "const": "UNCLASSIFIED_ACTIVITY"
+              },
+              "grouping_basis": {
+                "properties": {
+                  "purpose_rule_id": {
+                    "const": "NONE"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "label_source": {
+                "const": "EVIDENCE_BOUNDED_DESCRIPTION"
+              }
+            },
+            "required": [
+              "label_source"
+            ]
+          },
+          "then": {
+            "properties": {
+              "semantic_label": {
+                "enum": [
+                  "WEB_ACTIVITY_CANDIDATE",
+                  "REQUEST_EXECUTION_CANDIDATE",
+                  "CREDENTIAL_ACTIVITY_CANDIDATE",
+                  "HOST_ACTIVITY_CANDIDATE"
+                ]
+              },
+              "grouping_basis": {
+                "properties": {
+                  "purpose_rule_id": {
+                    "const": "NONE"
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "membership": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "stage_id": {
+          "$ref": "#/$defs/stage_id"
+        },
+        "original_chain_id": {
+          "$ref": "#/$defs/chain_id"
+        },
+        "primary_semantic_step_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/semantic_id"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "candidate_group_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/semantic_id"
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "stage_id",
+        "original_chain_id",
+        "primary_semantic_step_id",
+        "candidate_group_ids"
+      ]
+    },
+    "decision": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "semantic_step_id": {
+          "$ref": "#/$defs/semantic_id"
+        },
+        "status": {
+          "$ref": "#/$defs/status"
+        },
+        "reason_codes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/reason_code"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "source_decision_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/relation_id"
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        },
+        "evidence_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/evidence_ref"
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        },
+        "explanation": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "semantic_step_id",
+        "status",
+        "reason_codes",
+        "source_decision_ids",
+        "evidence_refs",
+        "explanation"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "CONFIRMED"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "reason_codes": {
+                "const": [
+                  "P1_COMPLETE"
+                ]
+              },
+              "evidence_refs": {
+                "type": "array",
+                "items": {
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/evidence_ref"
+                    },
+                    {
+                      "properties": {
+                        "resolution": {
+                          "const": "RESOLVED"
+                        }
+                      }
+                    }
+                  ]
+                },
+                "minItems": 1
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "REJECTED"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "reason_codes": {
+                "contains": {
+                  "enum": [
+                    "INCOMPATIBLE_ACTIVITY_IDENTITY",
+                    "GROUP_CONTRADICTION"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "not": {
+                  "const": "CONFIRMED"
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "reason_codes": {
+                "items": {
+                  "not": {
+                    "const": "P1_COMPLETE"
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "projection": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "source_relation_id": {
+          "$ref": "#/$defs/relation_id"
+        },
+        "relation_type": {
+          "enum": [
+            "DIRECTED_EDGE",
+            "UNDIRECTED_EDGE"
+          ]
+        },
+        "stage_a_id": {
+          "$ref": "#/$defs/stage_id"
+        },
+        "stage_b_id": {
+          "$ref": "#/$defs/stage_id"
+        },
+        "direction_claim": {
+          "enum": [
+            "A_TO_B",
+            "B_TO_A",
+            "UNDIRECTED"
+          ]
+        },
+        "from_stage_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/stage_id"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "to_stage_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/stage_id"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "stage_a_primary_semantic_step_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/semantic_id"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "stage_b_primary_semantic_step_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/semantic_id"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "source_relation_id",
+        "relation_type",
+        "stage_a_id",
+        "stage_b_id",
+        "direction_claim",
+        "from_stage_id",
+        "to_stage_id",
+        "stage_a_primary_semantic_step_id",
+        "stage_b_primary_semantic_step_id"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "relation_type": {
+                "const": "UNDIRECTED_EDGE"
+              }
+            },
+            "required": [
+              "relation_type"
+            ]
+          },
+          "then": {
+            "properties": {
+              "direction_claim": {
+                "const": "UNDIRECTED"
+              },
+              "from_stage_id": {
+                "type": "null"
+              },
+              "to_stage_id": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "relation_type": {
+                "const": "DIRECTED_EDGE"
+              }
+            },
+            "required": [
+              "relation_type"
+            ]
+          },
+          "then": {
+            "properties": {
+              "direction_claim": {
+                "enum": [
+                  "A_TO_B",
+                  "B_TO_A"
+                ]
+              },
+              "from_stage_id": {
+                "$ref": "#/$defs/stage_id"
+              },
+              "to_stage_id": {
+                "$ref": "#/$defs/stage_id"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "unresolved_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "evidence_ref": {
+          "$ref": "#/$defs/evidence_ref"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "evidence_ref",
+        "reason"
+      ]
+    }
+  }
+}

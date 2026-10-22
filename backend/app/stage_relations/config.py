@@ -28,6 +28,9 @@ class RelationConfig(StrictModel):
         expected = {'parent_child_process', 'request_response', 'session_followup',
                     'object_create_execute', 'object_handoff', 'attested_relation',
                     'shared_process_instance', 'shared_binding', 'shared_entity', 'network_context'}
+        # Optional additive policy keeps sealed legacy v1 snapshots readable.
+        if 'same_instance' in self.evidence:
+            expected.add('same_instance')
         if set(self.evidence) != expected:
             raise ValueError('all_and_only_supported_evidence_policies_required')
         if set(self.request_operations) & set(self.response_operations):

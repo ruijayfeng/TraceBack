@@ -18,13 +18,15 @@ from app.adapters.multisource import MultiSourceAdapter
 from app.ai.provider import load_provider_config
 from app.community import load_community_config, prepare_communities
 from app.config import load_config, read_yaml
+from app.noise_filter import load_noise_config
 from app.stages import aggregate_stages, load_stage_config, VOCABULARY
+from app.stages.aggregation import STAGE_BUILDER_VERSION
 from app.stages.resolver import AISemanticResolver
 from app.utils.stable_id import content_digest, id_for
 from run_community_builder import sha, save, write_models
 
 
-def execute(input_path, output, *, baseline_manifest=None, provider_config=None):
+def execute(input_path, output, *, baseline_manifest=None, provider_config=None, noise_policy_path=None):
     input_path, output = Path(input_path).resolve(), Path(output).resolve()
     if not output.is_relative_to(ROOT/'outputs'):
         raise ValueError('stage_output_must_be_inside_traceback_outputs')
@@ -34,13 +36,16 @@ def execute(input_path, output, *, baseline_manifest=None, provider_config=None)
     normalization = load_config(ROOT/'configs/algorithm-v5-evidence-semantics.yaml',
                                 deployment_override=ROOT/'configs/front-data-sources.yaml')
     community = load_community_config(ROOT/'configs/community-v1.yaml')
+    noise_policy = load_noise_config(noise_policy_path) if noise_policy_path else load_noise_config()
     policy = load_stage_config(ROOT/'configs/behavior-stage-v1.yaml')
     routing = read_yaml(ROOT/'configs/front-data-profiles.yaml')['sources']
     adapters = {s: MultiSourceAdapter(normalization, AdapterSettings(**v), s) for s, v in routing.items()}
     settings = {a.settings.source_namespace: a.settings for a in adapters.values()}
     provider_config = provider_config or load_provider_config()
     resolver = AISemanticResolver(provider_config, cache_dir=output/'semantic_cache') if provider_config.configured else None
-    snapshot = dict(behavior_stage=policy.model_dump(mode='json'), community=community.model_dump(mode='json'),
+    snapshot = dict(stage_builder=dict(version=STAGE_BUILDER_VERSION),
+        behavior_stage=policy.model_dump(mode='json'), community=community.model_dump(mode='json'),
+        noise_filter=noise_policy.model_dump(mode='json'),
         normalization=normalization.snapshot, sources={k:v.snapshot() for k,v in settings.items()},
         ai=dict(configured=provider_config.configured,
                 deployment=provider_config.model_dump(mode='json'),
@@ -60,7 +65,8 @@ def execute(input_path, output, *, baseline_manifest=None, provider_config=None)
                 input_counts[record['source_type']] += 1
                 trace.append(dict(event_id=record.get('event_id'), alert_id=alert.alert_id))
                 yield alert
-    run = prepare_communities(ingress(), settings, community)
+    run = prepare_communities(ingress(), settings, community, noise_config=noise_policy,
+                              behavior_config=policy, resolver=resolver)
     # Compare independently reproduced previous results BEFORE the new layer.
     unchanged = None
     if baseline_manifest:
@@ -77,13 +83,16 @@ def execute(input_path, output, *, baseline_manifest=None, provider_config=None)
         unchanged = actual == expected
         if not unchanged:
             raise ValueError('community_regression_against_sealed_baseline')
-    result = aggregate_stages(run, settings, community, policy, resolver)
+    result = aggregate_stages(run, settings, community, policy)
     if sha(input_path) != before:
         raise ValueError('native_input_changed_during_stage_run')
     config_hash = content_digest(snapshot)
-    analysis_id = id_for('AnalysisRecord', dict(input_alert_ids=sorted(a.alert_id for a in run.alerts),
+    analysis_id = id_for('AnalysisRecord', dict(input_alert_ids=sorted({a.alert_id for a in run.noise_filter.original_alerts}),
         config_hash=config_hash, algorithm_version=policy.version, schema_version='1.0'))
     domain, detail = ROOT/'data/processed'/analysis_id, ROOT/'outputs/analyses'/analysis_id
+    write_models(domain/'noise_source_alerts.jsonl.gz', run.noise_filter.original_alerts)
+    write_models(domain/'noise_audit.jsonl.gz', run.noise_filter.audit_records)
+    save(detail/'noise_summary.json', run.noise_filter.statistics)
     write_models(domain/'stage_source_alerts.jsonl.gz', sorted(run.alerts, key=lambda a:a.alert_id))
     write_models(domain/'stage_source_entities.jsonl.gz', sorted(run.entities, key=lambda e:e.entity_id))
     write_models(domain/'stage_source_communities.jsonl.gz', run.result.incident_candidates)
@@ -106,8 +115,8 @@ def execute(input_path, output, *, baseline_manifest=None, provider_config=None)
             data[label] = [dict(entity_id=eid, value=entities[eid].value, scope=entities[eid].scope) for eid in getattr(stage, field)]
         stage_summaries.append(data)
     save(output/'stage_summaries.json', stage_summaries)
-    summary = dict(TASK_RESULT='STAGE_AGGREGATION_COMPLETE', INPUT_ALERTS=sum(input_counts.values()),
-        CANONICAL_ALERTS=len(run.alerts), REJECTED_ALERTS=0,
+    summary = dict(TASK_RESULT='STAGE_AGGREGATION_COMPLETE', **run.noise_filter.statistics,
+        CANONICAL_ALERTS=len(run.noise_filter.original_alerts), REJECTED_ALERTS=0,
         COMMUNITY_COUNT=len(run.result.incident_candidates),
         COMMUNITY_SIZES=sorted(c.member_count for c in run.result.incident_candidates),
         COMMUNITY_BASELINE_UNCHANGED=unchanged, AI_PROVIDER_CONFIGURED=provider_config.configured,
@@ -117,7 +126,7 @@ def execute(input_path, output, *, baseline_manifest=None, provider_config=None)
     manifest = dict(analysis_id=analysis_id, status='sealed', algorithm_version=policy.version,
         config_hash=config_hash, config_snapshot=snapshot, input_sha256=before,
         input_fingerprint=run.result.input_fingerprint, artifacts=artifacts, summary=summary,
-        behavior_vocabulary=VOCABULARY, scope='Community -> Behavior -> Stage',
+        behavior_vocabulary=VOCABULARY, scope='Canonical -> Noise -> Behavior -> Community -> Stage',
         baseline_manifest_sha256=sha(baseline_manifest) if baseline_manifest else None,
         implementation_receipt_sha256=sha(output/'implementation_receipt.json'),
         limitations=['AI unavailable: unresolved semantics remain UNKNOWN'] if resolver is None else [])
@@ -133,8 +142,9 @@ def main():
     parser.add_argument('--input', type=Path, required=True)
     parser.add_argument('--output', type=Path, default=ROOT/'outputs/behavior_stage_v1')
     parser.add_argument('--baseline-manifest', type=Path)
+    parser.add_argument('--noise-policy', type=Path, default=None)
     args = parser.parse_args()
-    execute(args.input, args.output, baseline_manifest=args.baseline_manifest)
+    execute(args.input, args.output, baseline_manifest=args.baseline_manifest, noise_policy_path=args.noise_policy)
 
 
 if __name__ == '__main__':

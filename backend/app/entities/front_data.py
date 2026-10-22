@@ -8,11 +8,13 @@ from .normalization import hostname, ip
 
 def extract_front_data(alerts, source_settings):
     from .extraction import EntityResult
+    from .identity_projection import host_alias_plan, host_authority_scope, project_auth_sessions, project_context_identities
     from app.services.capacity import AlertSequence, execution_state
     state = execution_state()
     updated = state.alerts() if state else []
     entities = {}
     ordered = alerts if isinstance(alerts, AlertSequence) else sorted(alerts, key=lambda a: a.alert_id)
+    alias_plan, alias_bindings, diagnostics = host_alias_plan(ordered, source_settings)
     for alert in ordered:
         settings = source_settings[alert.source_namespace]
         asset = settings.asset_namespace
@@ -32,6 +34,11 @@ def extract_front_data(alerts, source_settings):
             host = ip(clean(host_ip)) if host_ip is not None else None
             host_kind = 'host_ip'
         asset_scope = canonical_json(dict(identity_kind=host_kind, **({'asset_scope': asset} if asset else {})))
+        authority = host_authority_scope(alert, settings)
+        if authority is not None:
+            asset_scope = canonical_json(dict(identity_kind=host_kind, identity_authority=authority))
+        if alert.alert_id in alias_plan:
+            host, asset_scope, alias_id = alias_plan[alert.alert_id]
         host_scope = canonical_json(dict(scope=asset_scope, host=host)) if host else None
         occurrences, ids_by_role = [], {}
 
@@ -81,7 +88,8 @@ def extract_front_data(alerts, source_settings):
                 value = canonical_json(dict(instance_id=guid))
                 pointer = pointer or alert.field_provenance[role].raw_pointer
             elif host is not None and process.pid is not None:
-                value = canonical_json(dict(host=host, pid=process.pid, start_time=process.start_time))
+                value = canonical_json(dict(host=host, pid=process.pid, start_time=process.start_time,
+                    **({'observation':alert.alert_id} if process.start_time is None else {})))
                 pointer = alert.field_provenance[role].raw_pointer
             elif host is not None and (process.executable or process.name):
                 value = canonical_json(dict(host=host, descriptor=process.executable or process.name))
@@ -105,10 +113,14 @@ def extract_front_data(alerts, source_settings):
         data.update(entity_ids=sorted({o.entity_id for o in occurrences}),
                     entity_occurrences=sorted(occurrences, key=lambda o: (o.entity_id, o.role.value, o.raw_pointer)),
                     contexts=context_refs(alert, settings, host_scope), extraction_version='front-data-v1', relations=relations)
+        data['identity_binding_ids'] = [alias_plan[alert.alert_id][2]] if alert.alert_id in alias_plan else []
         parsed = type(alert).model_validate(data)
         if state:
             updated.add(parsed)
         else:
             updated.append(parsed)
-    return EntityResult(updated.sequence() if state else updated,
-                        [Entity(**{**entities[eid], 'alert_ids': sorted(entities[eid]['alert_ids'])}) for eid in sorted(entities)])
+    entity_list = [Entity(**{**entities[eid], 'alert_ids': sorted(entities[eid]['alert_ids'])}) for eid in sorted(entities)]
+    aa, ee, projection = project_auth_sessions(updated.sequence() if state else updated,
+        entity_list, source_settings, alias_bindings, diagnostics)
+    aa, ee, projection = project_context_identities(aa, ee, source_settings, projection)
+    return EntityResult(aa, ee, projection)

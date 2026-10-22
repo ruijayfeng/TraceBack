@@ -5,7 +5,7 @@ describes the observed alert, never confirms compromise or an unobserved step.
 """
 from typing import Annotated, Literal
 
-from pydantic import Field, ValidationInfo, model_validator
+from pydantic import Field, ValidationInfo, model_validator, model_serializer
 
 from app.community.models import CommunityID
 from app.models.alerts import EvidencePointer, canonical_pointers
@@ -38,7 +38,9 @@ class SemanticAnswer(StrictModel):
 class BehaviorAnnotation(StrictModel):
     contract_version: Literal['behavior-stage-v1'] = 'behavior-stage-v1'
     alert_id: AlertID
-    community_id: CommunityID
+    # Set only when a downstream consumer binds an already computed annotation.
+    # Older sealed snapshots carrying this context remain valid.
+    community_id: CommunityID | None = None
     behavior: Behavior
     resolver: Literal['mapping', 'ai', 'unknown']
     matched_rule: list[Text]
@@ -46,6 +48,13 @@ class BehaviorAnnotation(StrictModel):
     reason: Text
     evidence: Annotated[list[EvidencePointer], Field(min_length=1)]
     input_digest: Digest
+
+    @model_serializer(mode='wrap')
+    def optional_context(self, handler):
+        data = handler(self)
+        if self.community_id is None:
+            data.pop('community_id', None)
+        return data
 
     @model_validator(mode='after')
     def closure(self, info: ValidationInfo):
@@ -61,17 +70,31 @@ class BehaviorAnnotation(StrictModel):
 
 
 class AggregationBasis(StrictModel):
-    """Membership proof for a pair; never a StageEdge or causal relation."""
+    """Undirected same-stage proof; never a causal Stage-to-Stage relation.
+
+    Optional graph metadata keeps sealed legacy complete-link artifacts readable.
+    """
     alert_ids: Annotated[ids(AlertID), Field(min_length=2, max_length=2)]
     rule: Literal['shared_strong_binding', 'consistent_core_context']
     shared_keys: Annotated[list[Text], Field(min_length=1)]
     evidence: Annotated[list[EvidencePointer], Field(min_length=2)]
+    edge_strength: Literal['STRONG', 'NORMAL', 'WEAK'] | None = None
+    evidence_types: list[Text] = Field(default_factory=list)
+    behavior_compatible: bool = True
+    binding_evidence: list[Text] = Field(default_factory=list)
+    entity_evidence: ids(EntityID) = Field(default_factory=list)
+    temporal_check: dict = Field(default_factory=dict)
 
     @model_validator(mode='after')
     def closure(self, info: ValidationInfo):
         object.__setattr__(self, 'evidence', canonical_pointers(self.evidence))
         if {p.alert_id for p in self.evidence} != set(self.alert_ids):
             raise ValueError('aggregation_requires_both_witnesses')
+        if self.edge_strength is not None:
+            if not self.behavior_compatible or not self.evidence_types or not self.temporal_check.get('passed'):
+                raise ValueError('stage_edge_requires_semantics_context_and_time')
+            if self.edge_strength == 'STRONG' and not self.binding_evidence:
+                raise ValueError('strong_stage_edge_requires_binding')
         check_evidence(self.evidence, self.alert_ids, info)
         return self
 
@@ -113,8 +136,11 @@ class Stage(StrictModel):
                 raise ValueError('stage_basis_outside_members')
             pairs.add(tuple(proof.alert_ids))
             check_evidence(proof.evidence, self.alert_ids, info)
-        if len(pairs) != self.alert_count * (self.alert_count - 1) // 2 or len(pairs) != len(self.aggregation_basis):
-            raise ValueError('stage_requires_complete_link_proof')
+        if len(pairs) != len(self.aggregation_basis):
+            raise ValueError('duplicate_stage_connectivity_edge')
+        from .graph import connected_components
+        if len(connected_components(self.alert_ids, self.aggregation_basis)) != 1:
+            raise ValueError('stage_requires_connected_proof')
         if info.context and 'alerts' in info.context:
             members = [info.context['alerts'][aid] for aid in self.alert_ids]
             if (self.start_time != min(a.timestamp for a in members) or
@@ -152,8 +178,16 @@ class StageResult(StrictModel):
             raise ValueError('duplicate_behavior_annotation')
         covered = []
         for stage in self.stages:
+            from .evidence import OBSERVATION_BEHAVIORS
+            labels = {annotations[aid].behavior for aid in stage.alert_ids if aid in annotations}
+            cross_label = [e for e in stage.aggregation_basis if all(i in annotations for i in e.alert_ids)
+                           and len({annotations[i].behavior for i in e.alert_ids}) > 1]
+            http_observations = (labels == {'WEB_EXPLOIT', 'UNKNOWN'} and bool(cross_label)
+                and all('http_transaction' in e.evidence_types and e.edge_strength == 'STRONG' for e in cross_label))
             for aid in stage.alert_ids:
-                if aid not in annotations or (annotations[aid].community_id, annotations[aid].behavior) != (stage.community_id, stage.behavior):
+                if (aid not in annotations or annotations[aid].community_id != stage.community_id
+                        or (annotations[aid].behavior != stage.behavior and
+                            not (stage.behavior in labels and (labels <= OBSERVATION_BEHAVIORS or http_observations)))):
                     raise ValueError('stage_annotation_mismatch')
             covered.extend(stage.alert_ids)
         if sorted(covered) != sorted(annotations):

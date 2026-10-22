@@ -90,12 +90,16 @@ class WazuhAdapter(AlertAdapter):
             if process.get("start_time") is not None:
                 fields["start_time"] = timestamp(process["start_time"], source_timezone=self.normalization.source_timezones.get(self.settings.source_namespace))
             facts[role], pointers[role] = ProcessRef(**fields), path
+            pointers.update({role+'.'+k: path+'/'+k for k,v in fields.items() if v is not None})
         audit = data.get("audit")
         if "process" not in facts and type(audit) is dict and any(audit.get(k) for k in ("exe", "command", "pid")):
             fields = {"name": text(audit.get("command")), "executable": text(audit.get("exe"))}
             if audit.get("pid") is not None:
                 fields["pid"] = integer(audit["pid"])
             facts["process"], pointers["process"] = ProcessRef(**fields), "/data/audit"
+            for child, key in (('name', 'command'), ('executable', 'exe'), ('pid', 'pid')):
+                if fields.get(child) is not None:
+                    pointers['process.'+child] = '/data/audit/'+key
         parsed_snippet(raw, facts, pointers, "/full_log", syslog=True)
         if self.settings.semantic_profile == "wazuh_local_v1":
             from .wazuh_semantics import project_local

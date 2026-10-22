@@ -1,4 +1,9 @@
-"""Independent consumed-snapshot tests; all generated records are synthetic."""
+"""Historical v1 compatibility tests; NOT the official ⑧ semantic contract.
+
+WEAK_DIRECTED expectations here cover sealed snapshot consumers only. The
+official entry uses app.stage_evidence and test_stage_evidence.py exclusively.
+All generated records are synthetic.
+"""
 import builtins
 import io
 import json
@@ -56,7 +61,7 @@ def snapshot(rows, cfg, normalization, *, split=False):
             sources=sorted({a.source_namespace for a in group}),entity_ids=sorted({eid for a in group for eid in a.entity_ids}),
             contexts={},member_count=len(group),matching_evidence=proof,membership_decisions=decisions))
         for alert in group:
-            behavior = normalize_behavior(alert,cid,behavior_policy)
+            behavior = normalize_behavior(alert,behavior_policy).model_copy(update={'community_id': cid})
             behaviors.append(behavior)
             def ids(kind):
                 return sorted({o.entity_id for o in alert.entity_occurrences if entities[o.entity_id].type.value == kind})
@@ -371,6 +376,65 @@ def test_weak_binding_never_upgrades_by_quantity(cfg,normalization,policy):
             record(2,time=5,hostname='h',user='Alice',request_id='r',session_id='s')]
     r, = analyze(snapshot(rows,cfg,normalization),cfg,policy).relations
     assert r.relation_type == 'WEAK_DIRECTED' and r.confidence == policy.evidence['shared_binding'].strength
+
+
+@pytest.mark.parametrize('time', [0, 5])
+def test_same_complete_current_process_is_strong_without_inventing_direction(cfg,normalization,policy,time):
+    rows = [record(1,hostname='h',operation='ProcessStart',process_id=42,
+                   process_start_time='2026-01-01T00:00:00Z'),
+            record(2,time=time,hostname='h',operation='FileRead',process_id=42,
+                   process_start_time='2026-01-01T00:00:00Z')]
+    data = snapshot(rows,cfg,normalization)
+    r, = analyze(data,cfg,policy).relations
+    assert r.relation_type == 'STRONG_UNDIRECTED'
+    assert r.evidence_type == 'same_instance'
+    assert r.semantic_direction is None
+    assert r.from_stage_id is r.to_stage_id is None
+    assert not r.time_conflict and not r.direction_conflict and not r.direction_reliable
+    from app.evidence_trace.trace import EvidenceTraceIndex
+    index = EvidenceTraceIndex('ana_'+'0'*64,data[1],data[0].stages,data[0].behaviors,[r])
+    assert index.relation_trace(r.relation_id).direction_basis == 'unresolved'
+    assert index.validate()['dangling_reference_count'] == 0
+    assert StageRelation.model_validate_json(r.model_dump_json(),context=dict(
+        alerts={a.alert_id:a for a in data[1]},stages={s.stage_id:s for s in data[0].stages})) == r
+
+
+@pytest.mark.parametrize('native_id,same_tuple,same_source,expected', [
+    (True,True,True,'STRONG_UNDIRECTED'), (False,True,True,'WEAK_DIRECTED'),
+    (True,False,True,'WEAK_DIRECTED'), (True,True,False,'WEAK_DIRECTED')])
+def test_flow_requires_native_identity_complete_tuple_and_scope(cfg,normalization,policy,
+        native_id,same_tuple,same_source,expected):
+    fields = dict(src_ip='192.0.2.1',src_port=12345,dst_ip='192.0.2.2',dst_port=443,protocol='TCP')
+    if native_id:
+        fields['flow_id'] = 100
+    rows = [record(1,**fields), record(2,time=5,source='edr' if same_source else 'firewall',
+        **dict(fields,dst_port=443 if same_tuple else 22))]
+    r, = analyze(snapshot(rows,cfg,normalization),cfg,policy).relations
+    assert r.relation_type == expected
+    if expected == 'STRONG_UNDIRECTED':
+        assert r.evidence_type == 'same_instance' and r.semantic_direction is None
+        aa = {a.alert_id:a for a in snapshot(rows,cfg,normalization)[1]}
+        assert sum(p.pointer == '/flow_id' for p in r.primary_evidence.pointers) == 2
+        for p in r.primary_evidence.pointers:
+            p.resolve(aa)
+
+
+@pytest.mark.parametrize('host,start', [('other','2026-01-01T00:00:00Z'),('h','2026-01-01T00:00:01Z')])
+def test_pid_reuse_or_different_host_is_not_same_instance(cfg,normalization,policy,host,start):
+    rows = [record(1,hostname='h',process_id=42,process_start_time='2026-01-01T00:00:00Z'),
+            record(2,time=5,hostname=host,process_id=42,process_start_time=start)]
+    result = analyze(snapshot(rows,cfg,normalization),cfg,policy)
+    assert all(not r.primary_evidence.strong for r in result.relations)
+
+
+def test_legacy_policy_stays_readable_and_replays_legacy_process_decision(cfg,normalization,policy):
+    raw = policy.model_dump()
+    raw['evidence'].pop('same_instance')
+    legacy = RelationConfig.model_validate(raw)
+    rows = [record(i,time=i,hostname='h',process_id=42,process_start_time='2026-01-01T00:00:00Z')
+            for i in (1,2)]
+    r, = analyze(snapshot(rows,cfg,normalization),cfg,legacy).relations
+    assert r.relation_type == 'WEAK_DIRECTED' and r.evidence_type == 'shared_process_instance'
 
 
 def test_semantic_network_attestation_supported_without_promoting_endpoint_match(cfg,normalization,policy):

@@ -1,4 +1,7 @@
-"""Experiment coordination: integrity hashing, isolated runtime, then evaluation."""
+"""LEGACY experiment coordinator; not the official Stage 1–4 analysis entry.
+
+Integrity hashing, isolated historical runtime, then evaluation.
+"""
 import argparse
 from datetime import datetime, timezone
 import hashlib

@@ -12,45 +12,57 @@ def semantic_input(alert, config):
     reject_truth(alert.raw_alert)
     fields, refs = {}, {}
     values = dict(source_type=alert.source_type.value, category=alert.category.value,
+        severity=alert.severity.value, host=alert.host, account=alert.account, session=alert.session,
         alert_type=alert.alert_type, signature=alert.signature, src_ip=alert.src_ip,
         dst_ip=alert.dst_ip, src_port=alert.src_port, dst_port=alert.dst_port,
-        command=alert.command, file=alert.file, url=alert.url)
-    if alert.process:
-        values.update(process_name=alert.process.name, executable=alert.process.executable)
+        command=alert.command, file=alert.file, url=alert.url, domain=alert.domain)
+    children = {}
+    for role, names in (('process', dict(pid='pid', process_name='name', executable='executable')),
+                        ('parent_process', dict(parent_pid='pid', parent_process_name='name', parent_executable='executable'))):
+        process = getattr(alert, role)
+        if process:
+            for field, child in names.items():
+                values[field] = getattr(process, child)
+                children[field] = role+'.'+child
     for name, value in values.items():
-        parent = 'process' if name in ('process_name', 'executable') else name
-        provenance = alert.field_provenance.get(parent)
+        provenance = alert.field_provenance.get(children.get(name, name))
         if value is None or provenance is None:
             continue
         # Reject oversize fields instead of silently changing their meaning.
         if isinstance(value, str) and len(value) > config.semantic_max_field_chars:
             continue
         raw_value = resolve_pointer(alert.raw_alert, provenance.raw_pointer)
-        if name in ('process_name', 'executable') and raw_value != value:
-            # A ProcessRef's root provenance can point to the PID field. Do not
-            # present that pointer as evidence for a different name/executable.
-            continue
+        if name in children:
+            from app.entities.normalization import integer, text
+            observed = integer(raw_value) if name in ('pid', 'parent_pid') else text(raw_value)
+            if observed != value:
+                # Historical aggregate-only provenance is never borrowed for a child.
+                continue
         fields[name] = value
         refs[name] = provenance.raw_pointer
-    for name, candidates in dict(action=['native.action'], protocol=['native.protocol', 'native.proto']).items():
+    for name, candidates in dict(action=['native.action'], protocol=['native.protocol', 'native.proto'],
+            method=['native.method', 'native.http/http_method'],
+            status=['native.status_code', 'native.http/status']).items():
         found = []
         for key in candidates:
             provenance = alert.field_provenance.get(key)
             if provenance:
                 value = resolve_pointer(alert.raw_alert, provenance.raw_pointer)
-                if type(value) is str and value.strip() and len(value) <= config.semantic_max_field_chars:
+                if (type(value) in (str, int) and str(value).strip()
+                        and len(str(value)) <= config.semantic_max_field_chars):
                     found.append((value, provenance.raw_pointer))
-        if found and len({v.casefold() for v, _ in found}) == 1:
+        if found and len({str(v).casefold() for v, _ in found}) == 1:
             fields[name], refs[name] = found[0]
     # Raw alert, wrapper IDs, payloads, other alerts and rejected candidates are
     # deliberately absent. The resolver cannot return entities or membership.
     evidence = [EvidencePointer(alert_id=alert.alert_id, pointer=p, side='shared') for p in sorted(set(refs.values()))]
     payload = dict(version=config.version, vocabulary=VOCABULARY, fields=fields,
+                   source_metadata=dict(namespace=alert.source_namespace, product=alert.source_product),
                    evidence=[p.model_dump(mode='json') for p in evidence])
     return fields, refs, evidence, payload
 
 
-def normalize_behavior(alert, community_id, config, resolver=None):
+def normalize_behavior(alert, config, resolver=None):
     fields, refs, evidence, payload = semantic_input(alert, config)
     digest = content_digest(payload)
     matches = []
@@ -60,7 +72,7 @@ def normalize_behavior(alert, community_id, config, resolver=None):
                 fields[condition.field].casefold() in {v.casefold() for v in condition.values})
                for condition in rule.all):
             matches.append(rule)
-    args = dict(alert_id=alert.alert_id, community_id=community_id,
+    args = dict(alert_id=alert.alert_id,
                 input_digest=digest, evidence=evidence)
     if len({r.behavior for r in matches}) == 1:
         used = {c.field for r in matches for c in r.all}

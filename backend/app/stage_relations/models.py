@@ -45,7 +45,10 @@ class RelationEvidence(StrictModel):
         if {p.alert_id for p in self.pointers} != set(self.alert_ids):
             raise ValueError('relation_evidence_requires_both_alerts')
         check_evidence(self.pointers, self.alert_ids, info)
-        if self.strong != (self.semantic_direction is not None):
+        identity_only = self.evidence_type == 'same_instance'
+        if identity_only and (not self.strong or self.semantic_direction is not None):
+            raise ValueError('same_instance_requires_strong_undirected_evidence')
+        if not identity_only and self.strong != (self.semantic_direction is not None):
             raise ValueError('strong_evidence_requires_semantic_direction')
         if self.semantic_direction and set(self.alert_ids) != {self.semantic_direction.from_alert_id, self.semantic_direction.to_alert_id}:
             raise ValueError('semantic_direction_outside_evidence')
@@ -128,7 +131,8 @@ class StageRelation(StrictModel):
         if undirected:
             if self.direction_reliable or self.from_stage_id is not None or self.to_stage_id is not None:
                 raise ValueError('undirected_relation_cannot_assert_direction')
-            if not (self.time_conflict or self.direction_conflict):
+            if not (self.time_conflict or self.direction_conflict or
+                    (self.primary_evidence.strong and self.primary_evidence.semantic_direction is None)):
                 raise ValueError('undirected_requires_unresolved_conflict')
         elif not self.direction_reliable or {self.from_stage_id, self.to_stage_id} != set(pair):
             raise ValueError('directed_relation_requires_valid_endpoints')
@@ -142,7 +146,7 @@ class StageRelation(StrictModel):
             if (self.overlap or self.time_conflict or self.semantic_direction or
                     (self.from_stage_id, self.to_stage_id) != endpoints.get(self.observed_time_order)):
                 raise ValueError('weak_relation_requires_unambiguous_observed_order')
-        if self.relation_type == 'STRONG_DIRECTED' and (self.time_conflict or self.direction_conflict or
+        if self.relation_type == 'STRONG_DIRECTED' and (self.semantic_direction is None or self.time_conflict or self.direction_conflict or
                 (self.from_stage_id, self.to_stage_id) != (self.semantic_direction.from_stage_id, self.semantic_direction.to_stage_id)):
             raise ValueError('strong_direction_must_follow_unconflicted_semantics')
         if (self.evidence_type, self.evidence_strength, self.confidence) != (

@@ -1,4 +1,4 @@
-"""Full native-input acceptance. Never imports evaluation or reads annotations.
+"""NOT_OFFICIAL_ANALYSIS_PIPELINE: native-input/index diagnostics only.
 
 Run evaluation only after this process seals its domain artifacts and manifest.
 """

@@ -78,10 +78,14 @@ def verify(input_path, output, baseline_manifest):
         community_result = CommunityResult(config_hash=manifest['config_hash'],
             input_fingerprint=manifest['input_fingerprint'], incident_candidates=communities,
             diagnostics=[], statistics={})
-        source = CommunityRun(alerts, entities, community_result)
+        # Replay saved annotations, never recompute Behavior after Community.
+        from app.stages.models import BehaviorAnnotation
+        annotations = [b.model_copy(update=dict(community_id=None)) for b in read('behaviors.jsonl.gz', BehaviorAnnotation)]
+        source = CommunityRun(alerts, entities, community_result, behaviors=annotations, behavior_config_hash=policy.digest)
         result = aggregate_stages(source, settings, community_config, policy)
         reversed_source = CommunityRun(list(reversed(alerts)), list(reversed(entities)),
-            community_result.model_copy(update=dict(incident_candidates=list(reversed(communities)))))
+            community_result.model_copy(update=dict(incident_candidates=list(reversed(communities)))),
+            behaviors=list(reversed(annotations)), behavior_config_hash=policy.digest)
         reverse = aggregate_stages(reversed_source, settings, community_config, policy)
         assert reverse == result
         assert result.stages == stages

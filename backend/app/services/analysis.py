@@ -1,4 +1,8 @@
-"""Single-process offline Analysis Service; algorithms are delegated unchanged."""
+"""LEGACY historical Analysis Service, not the official Stage 1–4 entry.
+
+Retained for existing snapshot/API compatibility. New analysis starts at
+app.services.alert_pipeline.load_alert_pipeline; algorithms here are unchanged.
+"""
 
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict
@@ -13,6 +17,7 @@ from contextlib import nullcontext
 
 from app.adapters import AMinerAdapter, WazuhAdapter
 from app.adapters.base import AlertAdapter
+from app.adapters.truth import GROUND_TRUTH_FORBIDDEN_FIELDS, reject_truth
 from app.chains.assembly import run_reconstruction
 from app.config import EffectiveConfig
 from app.correlation.edges import peak_memory_mb, run_correlation
@@ -30,9 +35,8 @@ ADAPTERS = {"wazuh": WazuhAdapter, "aminer": AMinerAdapter}
 ZERO_METRICS = dict(alert_count=0, representative_count=0, candidate_pair_count=0, candidate_dropped_count=0,
                     correlation_runtime_seconds=0, clustering_runtime_seconds=0, chain_runtime_seconds=0,
                     total_runtime_seconds=0, peak_memory_mb=0)
-FORBIDDEN = {"label", "labels", "ground_truth", "groundtruth", "ground_truth_path", "expected_incident",
-             "expected_chain", "attack_label", "evaluation_label", "gold_node", "gold_edge", "gold_chain",
-             "attack_timeline", "attack_description", "time_label", "event_label", "known_malicious_ip"}
+FORBIDDEN = GROUND_TRUTH_FORBIDDEN_FIELDS
+PIPELINE_ROLE = 'LEGACY_HISTORICAL_REPLAY_NOT_OFFICIAL_ANALYSIS_PIPELINE'
 
 
 class AnalysisInputError(ValueError):
@@ -73,14 +77,7 @@ def owner_alive(pid):
 
 
 def reject_annotations(value):
-    if isinstance(value, dict):
-        if any(k.lower().replace("-", "_") in FORBIDDEN for k in value):
-            raise ValueError("annotation_contamination")
-        for child in value.values():
-            reject_annotations(child)
-    elif isinstance(value, list):
-        for child in value:
-            reject_annotations(child)
+    reject_truth(value)
 
 
 class MeasuredAdapter:
@@ -199,6 +196,7 @@ class AnalysisService:
         store.domain.mkdir(parents=True, exist_ok=False)
         store.details.mkdir(parents=True, exist_ok=False)
         run = {"analysis_id": identity, "status": "queued", "is_complete": False, "owner_pid": os.getpid(),
+               "pipeline_role": PIPELINE_ROLE,
                "created_at": now(), "started_at": None, "completed_at": None,
                "candidate_contract_version": CANDIDATE_CONTRACT_VERSION,
                "config_version": request["config_version"], "config_snapshot": snapshot,

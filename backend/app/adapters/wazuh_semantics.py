@@ -46,3 +46,6 @@ def project_local(raw, facts, pointers):
     if isinstance(audit, dict) and not facts.get("parent_process") and (audit.get("parent_exe") or audit.get("parent_name")):
         facts["parent_process"] = ProcessRef(name=text(audit.get("parent_name")), executable=text(audit.get("parent_exe")))
         pointers["parent_process"] = "/data/audit"
+        for child, key in (('name', 'parent_name'), ('executable', 'parent_exe')):
+            if audit.get(key):
+                pointers['parent_process.'+child] = '/data/audit/'+key

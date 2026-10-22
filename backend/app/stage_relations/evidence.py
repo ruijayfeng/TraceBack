@@ -86,7 +86,7 @@ def evidence_for_pair(a, b, indexes, alerts, entities, policy):
             semantic_direction=semantic.model_dump(mode='json') if semantic else None)
         ep = policy.evidence[kind]
         data = dict(**identity, evidence_id=stable('sre', 'StageRelationEvidence', identity),
-            rank=ep.rank, evidence_strength=ep.strength, strong=direction is not None,
+            rank=ep.rank, evidence_strength=ep.strength, strong=direction is not None or kind == 'same_instance',
             entity_ids=sorted(set(left.entity_ids) | set(right.entity_ids) | set(entity_ids)), reason=reason)
         candidates[data['evidence_id']] = RelationEvidence.model_validate(data, context=dict(alerts=alerts))
 
@@ -129,6 +129,9 @@ def evidence_for_pair(a, b, indexes, alerts, entities, policy):
                                 if child.raw_alert.get(name) is not None)
                         add(ek, left, right, reason, direction, extra, child_ids)
                         continue
+                    if left.role == right.role == 'process' and 'same_instance' in policy.evidence:
+                        ek = 'same_instance'
+                        reason = 'Same complete scoped current process instance binds these observations; identity does not establish propagation direction.'
                 elif kind == 'direct_reference':
                     if {left.role, right.role} != {'record', 'reference'}:
                         continue
@@ -164,6 +167,18 @@ def evidence_for_pair(a, b, indexes, alerts, entities, policy):
                         refs = [EvidencePointer(alert_id=x.alert_id, pointer=x.field_provenance['alert_type'].raw_pointer, side='shared') for x in (la, ra)]
                         add(ek, left, right, reason, direction, refs)
                         continue
+                    if kind == 'flow' and 'same_instance' in policy.evidence:
+                        # A five-tuple can be reused. Require a native flow ID
+                        # in the SAME declared scope as well as this complete
+                        # tuple; an equal token across sources is insufficient.
+                        native = [(lc, rc) for lc in la.contexts for rc in ra.contexts
+                            if lc.kind == rc.kind == 'flow' and lc.scope == rc.scope and lc.value == rc.value]
+                        if native:
+                            refs = [EvidencePointer(alert_id=alert.alert_id,pointer=ref.raw_pointer,side='shared')
+                                for lc, rc in native for alert, ref in ((la,lc),(ra,rc))]
+                            add('same_instance',left,right,
+                                'Same complete flow tuple and native flow ID in the same declared scope; connection identity does not establish propagation direction.',
+                                extra=refs)
                 elif kind == 'entity':
                     ek, reason = 'shared_entity', 'Same scoped observed entity; only weak association plus observation order is claimed.'
                 elif kind == 'endpoint':

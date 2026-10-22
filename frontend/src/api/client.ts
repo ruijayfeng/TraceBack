@@ -1,4 +1,5 @@
 import type { AlertDetail, Chain, EdgeDetail, Explanation, IncidentDetail, IncidentRow, Overview, Page, SavedExplanation, TimelineItem } from '../types/domain';
+import type {StageCatalog, StageAnalysis, StageTrace, StageSummary} from '../types/stageAnalysis';
 export class APIError extends Error { constructor(public status: number, public code: string) { super(code); } }
 const safeCode = (value: unknown) => typeof value === 'string' && /^[a-z0-9_:.-]{1,100}$/.test(value) ? value : 'request_failed';
 async function request<T>(path: string, signal?: AbortSignal, method = 'GET', explanation = false): Promise<T> {
@@ -15,6 +16,11 @@ async function request<T>(path: string, signal?: AbortSignal, method = 'GET', ex
 const scope = (analysis: string, extra: Record<string, string | number> = {}) => '?' + new URLSearchParams({analysis_id: analysis, ...Object.fromEntries(Object.entries(extra).map(([k, v]) => [k, String(v)]))});
 const id = encodeURIComponent;
 export const api = {
+  stageCatalog: (s?: AbortSignal) => request<StageCatalog>('/stage-analyses', s),
+  stageAnalysis: (a: string, s?: AbortSignal) => request<StageAnalysis>(`/stage-analyses/${id(a)}`, s),
+  stageSummary: (a: string, s?: AbortSignal) => request<StageSummary>(`/stage-analyses/${id(a)}/summary`, s),
+  stageTrace: (a: string, subject: string, s?: AbortSignal) => request<StageTrace>(`/stage-analyses/${id(a)}/traces/${id(subject)}`, s),
+  stageRaw: (a: string, alert: string, s?: AbortSignal) => request<{raw_alert: unknown}>(`/stage-analyses/${id(a)}/alerts/${id(alert)}`, s),
   overview: (a: string, s?: AbortSignal) => request<Overview>(`/analyses/${id(a)}/overview`, s),
   incidents: (a: string, p: number, kind: string, sort: string, severity: string, s?: AbortSignal) => request<Page<IncidentRow>>(`/analyses/${id(a)}/workbench?page=${p}&page_size=20&kind=${id(kind)}&sort=${id(sort)}${severity ? '&severity=' + id(severity) : ''}`, s),
   incident: (a: string, i: string, s?: AbortSignal) => request<IncidentDetail>(`/incidents/${id(i)}${scope(a)}`, s),

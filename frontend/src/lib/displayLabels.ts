@@ -18,3 +18,6 @@ export const reasonLabel = (v: string) => label({node_basis:'节点构造依据'
 export const reasonMessageLabel = (message: string, code = '') => message.replace(/\b(authentication|unknown|process_execution|privilege_escalation|web_attack|command_execution|initial_access|lateral_movement)\b/g,v=>v==='unknown' && code==='source_complement' ? relationLabel(v) : categoryLabel(v)).replace(/\b(confirmed_independent|confirmed_same_origin)\b/g,relationLabel).replace(/\b(ACCOUNT|HOST|SESSION|PROCESS|COMMAND|FILE|DOMAIN)\b/g,entityLabel);
 
 export const originLabel = (v: string) => label({deterministic:'确定性事实模板',llm:'AI 生成',mixed:'AI 与确定性模板'},v);
+
+// Stage behavior → Chinese label (display only; used by overview and workbench).
+export const behaviorName = (v: string) => label({WEB_EXPLOIT:'Web 利用', EXECUTION:'执行活动', CREDENTIAL_ACTIVITY:'凭据活动', FILE_ACTIVITY:'文件活动', NETWORK_ACTIVITY:'网络活动', AUTHENTICATION:'身份认证', UNKNOWN:'未分类行为', PROCESS_EXECUTION:'进程执行'}, v);

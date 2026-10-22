@@ -1,0 +1,85 @@
+import {test,expect} from '@playwright/test';
+
+test('ATTACK125 ⑨ chain flow → evidence drawer without page jumps → raw → refresh',async({page,request})=>{
+  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
+  const requested:string[]=[];page.on('request',r=>requested.push(r.url()));
+  const catalog=await (await request.get('/api/v1/stage-analyses')).json();
+  const analysis=await (await request.get('/api/v1/stage-analyses/'+catalog.default_analysis_id,{timeout:120000})).json();
+  await page.goto('/?view=stages');
+  await expect(page.getByRole('heading',{name:'125 条告警分析'})).toBeVisible();
+  await expect(page.getByLabel('分析 ID',{exact:true})).toHaveCount(0);
+  const counts=analysis.counts;
+  for(const [label,value] of [['输入告警',counts.input_count],['行为阶段',counts.stage_count],['已接受关系',counts.relation_count],['攻击链',counts.chain_count],['有向关系',counts.directed_count ?? 0],['无向关系',counts.undirected_count ?? 0],['拒绝建边',counts.no_relation_count ?? 0]]){
+    await expect(page.locator('.metric').filter({has:page.locator('span',{hasText:new RegExp('^'+label+'$')})}).locator('strong')).toHaveText(String(value));
+  }
+  await expect(page.locator('.stage-chain-tabs button')).toHaveCount(counts.chain_count);
+  await expect(page.getByRole('button',{name:/攻击链 1/})).toBeVisible();
+  await expect(page.getByRole('button',{name:/选择阶段/})).toHaveCount(0);
+  const chains=[...analysis.chains].sort((a,b)=>(b.directed_count??0)-(a.directed_count??0) || b.stage_count-a.stage_count || a.chain_id.localeCompare(b.chain_id));
+  const first=chains[0];
+  await expect(page.locator('.event-flow-canvas .graph-node')).toHaveCount(first.stage_count);
+  await page.getByLabel('展开全部关系').check();
+  await expect(page.locator('.event-flow-canvas .graph-edge')).toHaveCount(first.relation_count);
+  await page.getByLabel('展开全部关系').uncheck();
+  await page.locator('.event-flow').screenshot({path:'../outputs/stage_workbench_checks/attack125-full-event-flow.png'});
+  const overviewWidth=await page.locator('.event-flow-canvas svg').getAttribute('width');
+  await page.getByRole('button',{name:'放大流程图'}).click();
+  expect(Number(await page.locator('.event-flow-canvas svg').getAttribute('width'))).toBeGreaterThan(Number(overviewWidth));
+  await page.getByRole('button',{name:'查看全图',exact:true}).click();
+  await expect(page.locator('.event-flow-canvas svg')).toHaveAttribute('width',overviewWidth!);
+  await page.screenshot({path:'../outputs/stage_workbench_checks/attack125-dashboard.png',fullPage:true});
+  await page.getByRole('button',{name:'阶段列表',exact:true}).click();
+  const stageButton=page.getByRole('button',{name:'查看阶段证据',exact:true}).first();
+  await stageButton.scrollIntoViewIfNeeded();
+  const stageScroll=await page.evaluate(()=>scrollY);
+  await stageButton.click();
+  const drawer=page.getByRole('dialog');
+  await expect(drawer).toHaveAccessibleName(/阶段证据/);
+  await expect(drawer.getByRole('heading',{name:'证据追溯',exact:true})).toBeVisible();
+  expect(await page.evaluate(()=>scrollY)).toBe(stageScroll);
+  expect((await drawer.boundingBox())!.x).toBeGreaterThan(700);
+  await drawer.getByRole('button',{name:'查看原始告警',exact:true}).first().click();
+  await expect(drawer.locator('.json-view pre').first()).toBeVisible();
+  await page.screenshot({path:'../outputs/stage_workbench_checks/attack125-stage-drawer.png'});
+  await page.keyboard.press('Escape');await expect(drawer).toHaveCount(0);
+  await expect(stageButton).toBeFocused();expect(await page.evaluate(()=>scrollY)).toBe(stageScroll);
+  await page.getByRole('button',{name:'关系列表',exact:true}).click();
+  const relationButton=page.getByRole('button',{name:'查看关系证据',exact:true}).first();
+  await relationButton.scrollIntoViewIfNeeded();const relationScroll=await page.evaluate(()=>scrollY);
+  await relationButton.click();
+  await expect(drawer).toHaveAccessibleName(/关系证据/);
+  // ⑨ line exposes witness alerts (no legacy "winning evidence" badge).
+  await expect(drawer.getByRole('heading',{name:'证据追溯',exact:true})).toBeVisible();
+  await expect(drawer.locator('table tbody tr').first()).toBeVisible();
+  expect(await page.evaluate(()=>scrollY)).toBe(relationScroll);
+  await page.screenshot({path:'../outputs/stage_workbench_checks/attack125-evidence.png'});
+  await page.mouse.click(20,100);await expect(drawer).toHaveCount(0);
+  await expect(relationButton).toBeFocused();
+  await page.goto('/?view=stages&analysis_id='+catalog.default_analysis_id);
+  await expect(page.getByRole('heading',{name:'125 条告警分析'})).toBeVisible();
+  await page.reload();await expect(page.getByRole('heading',{name:'125 条告警分析'})).toBeVisible();
+  const tabs=page.locator('.stage-chain-tabs button');
+  for(let i=0;i<chains.length;i++){
+    await tabs.nth(i).click();await expect(tabs.nth(i)).toHaveAttribute('aria-pressed','true');
+    await expect(page.locator('.event-flow-canvas .graph-node')).toHaveCount(chains[i].stage_count);
+    await page.getByLabel('展开全部关系').check();
+    await expect(page.locator('.event-flow-canvas .graph-edge')).toHaveCount(chains[i].relation_count);
+    await page.getByLabel('展开全部关系').uncheck();
+    await page.locator('.event-flow').screenshot({path:`../outputs/stage_workbench_checks/attack125-event-${i+1}-flow.png`});
+  }
+  await page.setViewportSize({width:390,height:844});
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBeTruthy();
+  await page.screenshot({path:'../outputs/stage_workbench_checks/attack125-mobile.png',fullPage:true});
+  await page.getByRole('button',{name:'阶段列表',exact:true}).click();
+  await page.getByRole('button',{name:'查看阶段证据',exact:true}).first().click();
+  await expect(drawer).toBeVisible();
+  await expect(drawer.getByRole('button',{name:'查看原始告警',exact:true}).first()).toBeVisible();
+  await drawer.evaluate(async element=>{await Promise.all(element.getAnimations().map(animation=>animation.finished));});
+  expect((await drawer.boundingBox())!.width).toBeLessThanOrEqual(390);
+  await expect(drawer.getByRole('button',{name:'关闭证据'})).toBeVisible();
+  await page.screenshot({path:'../outputs/stage_workbench_checks/attack125-mobile-drawer.png'});
+  await drawer.getByRole('button',{name:'关闭证据'}).click();
+  expect(errors).toEqual([]);
+  expect(requested.some(url=>/\/analyses\/ana_.*\/(overview|workbench)/.test(url))).toBeFalsy();
+  expect(requested.some(url=>url.includes('ground_truth')||url.includes('labels.csv'))).toBeFalsy();
+});

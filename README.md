@@ -29,7 +29,7 @@ npm.cmd --prefix frontend run build
 .\.venv\Scripts\python.exe -m uvicorn app.api.workbench:create_workbench_app --factory --host 127.0.0.1 --port 8000
 ```
 
-看到 `Uvicorn running on http://127.0.0.1:8000` 后，打开[工作台](http://127.0.0.1:8000)，在页面顶部输入已有的 Analysis ID，点击“打开分析”。[本机已验证的快照地址](docs/STARTUP.md#查看已有分析快照推荐入口)可直接复制使用。
+看到 `Uvicorn running on http://127.0.0.1:8000` 后，打开[工作台](http://127.0.0.1:8000)。首页为态势总览，自动读取最新正式分析，无需填写 Analysis ID。当前正式快照为 **125 条告警、15 个阶段、12 条关系、7 条链结构**；通过顶部导航进入告警、场景、攻击链和证据页面。历史 **47 阶段 / 255 关系 / 4 事件**快照仍按原分析 ID 保留。工作台展示已有分析结果；启动服务不会重新运行算法。
 
 保持终端运行，按 `Ctrl+C` 停止。这个入口只启动服务，不重新运行告警分析。
 
@@ -44,7 +44,7 @@ cd D:\Code_WorkSpace\TraceBack
 .\.venv\Scripts\python.exe -m uvicorn app.api.workbench:create_workbench_app --factory --host 127.0.0.1 --port 8000
 ```
 
-看到 `Uvicorn running` 后，打开[工作台](http://127.0.0.1:8000)，输入已有的 Analysis ID；也可以直接打开之前保存的带 `?analysis_id=...` 的工作台地址。保持终端运行，按 `Ctrl+C` 停止。
+看到 `Uvicorn running` 后，打开[工作台](http://127.0.0.1:8000)，自动进入最新正式分析的态势总览。旧版结果仍可通过原有 `?analysis_id=...` 地址查看；点击顶部 TraceBack 标志返回最新总览。保持终端运行，按 `Ctrl+C` 停止。
 
 工作台直接读取已有快照，不经过 `scripts/demo.py` 的 AIT-ADS 数据检查。旧版 Demo 的重新分析、场景切换及其数据前提见[启动指南](docs/STARTUP.md#旧版-ait-ads-demo需要原始数据)。
 
@@ -66,7 +66,11 @@ cd D:\Code_WorkSpace\TraceBack
 npm.cmd --prefix frontend run dev
 ```
 
-打开 Vite 打印的 `Local:` 地址，在页面顶部输入已有的 Analysis ID 并点击“打开分析”。可使用[已验证快照](docs/STARTUP.md#查看已有分析快照推荐入口)的 ID，不使用失败的 Demo 运行记录。此模式修改 UI 后会自动刷新；关闭服务时在两个终端分别按 `Ctrl+C`。
+打开 Vite 打印的 `Local:` 地址，首页自动进入态势总览。历史分析使用带 `?analysis_id=...` 的地址。此模式修改 UI 后会自动刷新；关闭服务时在两个终端分别按 `Ctrl+C`。
+
+工作台采用顶部模块导航：**态势总览 / 安全告警 / 攻击场景 / 攻击链 / 证据追溯 / 分析记录**。总览仅展示指标、分布和 4 条链摘要；告警与证据列表每页 10 条，攻击链页通过“攻击流程 / 阶段列表 / 关系列表 / 拒绝建边”切换内容。选择的分析、链和视图可通过 URL 刷新恢复；手机总览可按需展开关系与来源分布。
+
+首页展示最新正式快照的真实统计；参考设计中的风险评分、处置状态与 ATT&CK 分布，需要对应数据支持后再接入。
 
 ## 项目目录结构
 
@@ -112,6 +116,7 @@ TraceBack/
 
 ## 更多说明
 
+- [Stage 1–4 正式流水线](docs/STAGE_1_4_PIPELINE.md)：唯一原生输入入口、Noise→Behavior 交接及历史入口边界。
 - [启动指南](docs/STARTUP.md)：数据准备、重新分析、切换场景、停止 Demo、端口设置与排错。
 - [验证命令](docs/STARTUP.md#验证命令)：后端测试、前端检查和浏览器验收。
 - [结果与能力边界](docs/STARTUP.md#数据结果和边界)：历史结果、AI 配置与评测限制。

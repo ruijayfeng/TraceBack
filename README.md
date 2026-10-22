@@ -10,7 +10,7 @@
 
 **新电脑或尚未安装依赖时，按本节执行一次。** 准备 Python **3.11**（含 Windows Python Launcher）、Node.js **24** 和 npm。
 
-**查看结果需要已有分析快照：**保留或从原机器复制对应的 `data/processed/<analysis_id>/` 和 `outputs/analyses/<analysis_id>/`。当前副本已有可查询快照；安装依赖本身不会生成分析结果。查看已有结果使用下方工作台入口，无需 AIT-ADS 原始数据登记文件。
+**查看结果需要已有分析快照：**新版默认首页需要从原机器复制 `outputs/stage9_formal_acceptance_20261022/run1/`，其中须包含完整的 `stage8.json` 和 `stage9.json`。查看旧版分析还需对应的 `data/processed/<analysis_id>/` 和 `outputs/analyses/<analysis_id>/`。这些快照不随 GitHub 分发；当前副本已有可查询快照，安装依赖本身不会生成分析结果。查看已有结果使用下方工作台入口，无需 AIT-ADS 原始数据登记文件。
 
 打开 PowerShell，按顺序执行（项目路径不同时替换第一行）：
 

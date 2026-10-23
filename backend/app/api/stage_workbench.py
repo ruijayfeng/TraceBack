@@ -29,7 +29,7 @@ from app.evidence_trace.snapshot import file_sha256
 
 # The official ⑨ artifact directory, relative to the project root. It is the
 # primary, latest, official fact source consumed by this workbench.
-STAGE9_ARTIFACT = 'outputs/stage9_formal_acceptance_20261022/run1'
+STAGE9_ARTIFACT = 'outputs/attack125_final_rerun_20261023_measured'
 
 
 def _stage9_analysis_id():
@@ -168,6 +168,8 @@ class StageWorkbench:
                         counts=overview['counts'], chains=overview['chains'],
                         stages=overview['stages'], relations=overview['relations'],
                         decisions=overview['decisions'],
+                        data_source=STAGE9_ARTIFACT,
+                        artifact_sha256=data['receipt'],
                         read_only=True, official=True, latest=True, source_stage=9)
         data = self.load(analysis_id)
         graph, chains = data['graph'], data['result'].chains

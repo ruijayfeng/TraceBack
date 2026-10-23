@@ -81,6 +81,18 @@ function TracePanel({analysisId, subjectId}: {analysisId: string; subjectId: str
   return <Section title="证据追溯" hint="阶段 / 关系 → 见证告警 → 原始字段">
     {resource.loading && <Notice kind="loading">正在解析证据…</Notice>}{resource.error && <Notice kind="error">{resource.error}</Notice>}
     {data && <><p>{data.trace.evidence_summary}</p><p className="muted">对象：<StableId value={subjectId}/></p>
+      {data.trace.stage && <dl className="record-facts">
+        <dt>Stage ID</dt><dd><code>{data.trace.stage.stage_id}</code></dd>
+        <dt>行为</dt><dd>{data.trace.stage.behavior}</dd>
+        <dt>告警数量</dt><dd>{data.trace.stage.alert_count}</dd>
+        <dt>开始时间</dt><dd><Time value={data.trace.stage.start_time}/></dd>
+        <dt>结束时间</dt><dd><Time value={data.trace.stage.end_time}/></dd>
+        <dt>Host</dt><dd>{data.trace.stage.host_entities.map(e=>e.display_value).join(' / ') || '未观测'}</dd>
+        <dt>Account</dt><dd>{data.trace.stage.account_entities.map(e=>e.display_value).join(' / ') || '未观测'}</dd>
+        <dt>Process</dt><dd>{data.trace.stage.process_entities.map(e=>e.display_value).join(' / ') || '未观测'}</dd>
+        <dt>数据源（原生记录）</dt><dd>{data.trace.stage.observed_sources.join(' / ')}</dd>
+      </dl>}
+      {data.trace.relation_type && <dl className="record-facts"><dt>Relation Type</dt><dd>{data.trace.relation_type}</dd><dt>Evidence Type</dt><dd>{data.trace.evidence_types?.join(' / ')}</dd><dt>Evidence Reason</dt><dd>{data.trace.reason}</dd></dl>}
       <div className="table-scroll"><table><thead><tr><th>见证告警</th><th>来源</th><th>观测时间</th><th>证据</th></tr></thead><tbody>{data.trace.witness_alerts.map(a => <tr key={a.alert_id}><td><StableId value={a.alert_id}/>{(data.trace.winning_witness_alert_ids ?? []).includes(a.alert_id) && <span className="badge verified">主证据</span>}</td><td>{a.source_type ? sourceLabel(a.source_type) : '—'}</td><td>{a.timestamp ? <Time value={a.timestamp}/> : '—'}</td><td><button onClick={() => setRaw(raw===a.alert_id?'':a.alert_id)}>{raw===a.alert_id?'收起原始告警':'查看原始告警'}</button></td></tr>)}</tbody></table></div>
       {raw && <RawAlert key={raw} analysisId={analysisId} alertId={raw}/>}
       <details className="diagnostics"><summary>已解析的字段指针（{data.resolved_pointers.length}）</summary><JsonView value={data.resolved_pointers} title="全部字段指针"/></details>
@@ -133,7 +145,7 @@ export function StageAnalysisView({data}: {data: StageAnalysis}) {
   const stageName=(id:string)=>{const i=stages.findIndex(s=>s.stage_id===id);const s=data.stages.find(s=>s.stage_id===id);return i>=0?`${i+1}. ${behavior(stages[i].behavior)}`:s?`${behavior(s.behavior)} (${s.stage_id.slice(-6)})`:id;};
   const selectedStage=data.stages.find(s=>s.stage_id===selected),selectedRelation=[...data.relations,...rejected].find(r=>r.relation_id===selected);
   const counts=data.counts;
-  const metrics:[number,string][]=is9?[[counts.input_count,'输入告警'],[counts.stage_count,'行为阶段'],[counts.relation_count,'已接受关系'],[counts.chain_count,'攻击链'],[counts.directed_count??0,'有向关系'],[counts.undirected_count??0,'无向关系'],[counts.no_relation_count??0,'拒绝建边']]:[[counts.input_count,'输入告警'],[counts.stage_count,'行为阶段'],[counts.relation_count,'阶段关系'],[counts.chain_count,'事件'],[counts.strong_directed_count??0,'强有向关系'],[counts.strong_undirected_count??0,'强无向关系'],[counts.weak_directed_count??0,'弱时间关系']];
+  const metrics:[number,string][]=is9?[[counts.input_count,'输入告警'],[counts.stage_count,'行为阶段'],[counts.relation_count,'已接受关系'],[counts.chain_count,'攻击链结构'],[data.chains.filter(c=>!c.single_stage).length,'主体攻击链'],[data.chains.filter(c=>c.single_stage).length,'孤立阶段'],[counts.directed_count??0,'有向关系'],[counts.undirected_count??0,'无向关系'],[counts.no_relation_count??0,'拒绝建边']]:[[counts.input_count,'输入告警'],[counts.stage_count,'行为阶段'],[counts.relation_count,'阶段关系'],[counts.chain_count,'事件'],[counts.strong_directed_count??0,'强有向关系'],[counts.strong_undirected_count??0,'强无向关系'],[counts.weak_directed_count??0,'弱时间关系']];
   const directionBasis=(r:StageRelation)=>r.direction_basis==='temporal_order'?'观测时间先后':r.direction_basis==='unresolved' || r.direction_claim==='UNDIRECTED'?'方向未解决':'原始证据语义';
   return <div className="chain-page"><div className="overview-heading"><div><h1>{counts.input_count} 条告警分析</h1><p>选择攻击链，在流程、阶段与关系之间切换调查。</p></div><span className="badge verified">{is9?'正式⑨产物 · 证据可追溯':'证据可追溯'}</span></div>
     <div className="chain-metrics">{metrics.map(([value,title])=><article className="metric" key={title}><span>{title}</span><strong>{value}</strong></article>)}</div>

@@ -85,6 +85,7 @@ class Stage9ArtifactReader:
 
         return dict(stages=stages, relations=relations, decisions=decisions,
                     evidence=stage8['evidence'], alerts=stage8['alerts'],
+                    entities=stage8.get('entities', []),
                     reconstruction=reconstruction,
                     input_digest=reconstruction.input_digest)
 
@@ -120,12 +121,13 @@ class Stage9ArtifactReader:
                     evidence_type_counts=d.get('evidence_type_counts', {}),
                     diagnostics=d.get('diagnostics', []))
 
-    def chain_projection(self, chain):
+    def chain_projection(self, chain, relations=None):
         c = _data(chain)
         # Derive per-chain directed/undirected counts from the already-sealed
         # relation membership (no re-judging). relation_ids reference decisions
         # whose relation_type is preserved verbatim.
-        relations = self.load()['relations']
+        if relations is None:
+            relations = self.load()['relations']
         directed = sum(1 for rid in c['relation_ids']
                        if _data(relations[rid])['relation_type'] in DIRECTED_KINDS)
         undirected = sum(1 for rid in c['relation_ids']
@@ -155,6 +157,7 @@ class Stage9ArtifactReader:
                           if _data(d)['relation_type'] == NO_RELATION)
 
         counts = dict(input_count=len(data['alerts']),
+                      community_count=len({_data(s)['community_id'] for s in stages.values()}),
                       stage_count=len(stages),
                       relation_count=len(relations),
                       decision_count=len(decisions),
@@ -170,7 +173,7 @@ class Stage9ArtifactReader:
                     stages=[self.stage_projection(s) for s in stages.values()],
                     relations=[self.decision_projection(r) for r in relations.values()],
                     decisions=[self.decision_projection(d) for d in decisions],
-                    chains=[self.chain_projection(c) for c in reconstruction.chains],
+                    chains=[self.chain_projection(c, relations) for c in reconstruction.chains],
                     guard=reconstruction.guard)
 
     # -- overview summary (read-only aggregation, no algorithm) ----------
@@ -242,10 +245,12 @@ class Stage9ArtifactReader:
         # data['stages'] is a FrozenStageGraph index (dict of pydantic Stage).
         stages = {sid: _data(stage) for sid, stage in data['stages'].items()}
         return dict(alerts=alerts, claims=claims, observations=observations,
+                    entities={e['entity_id']: e for e in data['entities']},
                     pointers=pointers, decisions=decisions, stages=stages)
 
-    def alert_projection(self, alert_id):
-        tables = self._evidence_tables()
+    def alert_projection(self, alert_id, tables=None):
+        if tables is None:
+            tables = self._evidence_tables()
         alert = tables['alerts'].get(alert_id)
         if alert is None:
             return None
@@ -314,9 +319,21 @@ class Stage9ArtifactReader:
             for aid in sorted(tables['stages'][subject_id]['alert_ids']):
                 seen_alerts.add(aid)
 
-        witness_alerts = [self.alert_projection(aid) for aid in sorted(seen_alerts)]
+        witness_alerts = [self.alert_projection(aid, tables) for aid in sorted(seen_alerts)]
+        stage = tables['stages'].get(subject_id)
+        stage_detail = None
+        if stage:
+            stage_detail = self.stage_projection(stage)
+            for field in ('host_entities', 'account_entities', 'process_entities'):
+                stage_detail[field] = [tables['entities'][eid] for eid in stage.get(field, [])
+                                       if eid in tables['entities']]
+            stage_detail['observed_sources'] = sorted({
+                tables['alerts'][aid]['raw_alert'].get('source_type', 'unknown')
+                for aid in stage['alert_ids']})
         return dict(subject_id=subject_id, subject_type=subject_type,
+                    stage=stage_detail,
                     relation_type=relation_type, reason=reason,
+                    evidence_types=sorted({claims[cid]['evidence_type'] for cid in claim_ids}),
                     evidence_summary=summary,
                     witness_alert_ids=sorted(seen_alerts),
                     witness_alerts=[w for w in witness_alerts if w],

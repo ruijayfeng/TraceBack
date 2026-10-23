@@ -30,14 +30,18 @@ function MetricCards({data}: {data: StageAnalysis}) {
     {title: '输入告警', value: c.input_count, hint: '多源设备原始告警'},
     {title: '攻击阶段', value: c.stage_count, hint: '行为语义聚合'},
     {title: '已接受关系', value: c.relation_count, hint: '证据判定通过'},
-    {title: '攻击链', value: c.chain_count, hint: '连通分量重构'},
+    {title: '攻击链结构', value: c.chain_count, hint: '连通分量重构'},
+    {title: 'Community', value: c.community_count ?? new Set(data.stages.map(s=>s.community_id)).size, hint: '告警调查分组'},
+    {title: 'Stage Pair', value: c.decision_count ?? 0, hint: '正式候选阶段对'},
+    {title: '主体攻击链', value: data.chains.filter(c=>!c.single_stage).length, hint: '多阶段链结构'},
+    {title: '孤立阶段', value: data.chains.filter(c=>c.single_stage).length, hint: '单阶段链结构'},
     {title: '有向关系', value: c.directed_count ?? 0, hint: '证据语义方向'},
     {title: '无向关系', value: c.undirected_count ?? 0, hint: '方向未解决'},
   ];
   const icons: IconName[] = ['alert','layers','check','chain','arrow','evidence'];
   return <div className="metric-grid overview-metrics">{cards.map(({title, value, hint},i) => (
     <article className={'metric overview-metric metric-tone-'+i} key={title}>
-      <span className="metric-icon"><Icon name={icons[i]}/></span><div>
+      <span className="metric-icon"><Icon name={icons[i % icons.length]}/></span><div>
       <span className="metric-title">{title}</span>
       <strong>{value.toLocaleString()}</strong>
       <small className="metric-hint">{hint}</small>

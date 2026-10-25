@@ -244,3 +244,5 @@ def install_stage_workbench(app, root):
                     raw_alert=data['graph'].trace_index.raw_evidence(ref))
 
     app.include_router(router)
+    from .stage_explanations import install_stage_explanations
+    install_stage_explanations(app, root, service)

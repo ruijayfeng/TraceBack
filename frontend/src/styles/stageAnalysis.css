@@ -72,3 +72,7 @@
   .stage-evidence-drawer .drawer-heading { padding: 18px 16px; }
   .stage-evidence-content { padding: 16px; }
 }
+.stage-ai-report {margin-top:24px; padding-top:20px; border-top:1px solid var(--border, #dfe6ec); overflow-wrap:anywhere;}
+.stage-ai-report details {margin:12px 0; padding:10px; border:1px solid var(--border, #dfe6ec); border-radius:8px;}
+.stage-ai-report summary {cursor:pointer;}
+.stage-ai-report pre {max-width:100%; overflow:auto; white-space:pre-wrap;}

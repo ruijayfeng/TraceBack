@@ -72,6 +72,29 @@ npm.cmd --prefix frontend run dev
 
 首页展示最新正式快照的真实统计；参考设计中的风险评分、处置状态与 ATT&CK 分布，需要对应数据支持后再接入。
 
+## 只读 AI 辅助研判
+
+正式攻击链页面新增 **AI 辅助研判** 区域，点击“生成 AI 研判”后，解释当前 Chain 的三类内容：
+
+- **Stage 具体行为**：结合原始告警中的请求、进程、命令行、文件、账户和主机等字段，分别展示观测事实、谨慎解释与缺失证据。
+- **已有 Relation 的关联依据**：说明正式算法已经接受的证据关系，保留原有有向边和未解决方向的无向边。
+- **阶段及整体影响**：分别展示潜在危害和有明确证据支持的已确认观测，不把告警、成功认证或网络流量升级为主机失陷、账户失陷或数据泄露。
+
+AI 只读取当前正式⑨结果及其告警、实体和关系证据，不参与①～⑨的算法决策，不修改 Stage、Community、Relation、方向或 Chain，也不补边或合并不同 Chain。输出通过结构、原始字段指针、证据引用与关系一致性校验后才展示；可回查原始证据并导出 JSON / Markdown。打开页面或读取已存报告不会自动调用模型。
+
+**模型配置：**首次配置时参考 `configs/llm.example.yaml` 创建本地 `configs/llm.yaml`，填写 `base_url`、`model` 和 `api_key`；也支持 `TRACEBACK_LLM_BASE_URL`、`TRACEBACK_LLM_MODEL`、`TRACEBACK_LLM_API_KEY` 环境变量。配置文件和密钥不提交到 GitHub，修改后重启后端。缺少配置、模型调用失败或 grounding 拒绝时，仅显示“AI 辅助研判暂不可用”，原始攻击链、关系与告警仍可查询。
+
+核心实现位于 `backend/app/ai/`：`stage_context.py` 整理只读证据输入，`stage_explanation.py` 负责服务和报告，`stage_grounding.py` 校验输出，`stage_knowledge.py` 定义受证据约束的解释与影响规则。接口位于 `backend/app/api/stage_explanations.py`，前端位于 `frontend/src/components/StageAIReport.tsx`。报告独立存放于本地 `outputs/ai_stage_reports/`，不写回正式分析结果。
+
+已有正式 ATTACK125 快照时，可验证主要多节点 Chain：
+
+```powershell
+.\.venv\Scripts\python.exe scripts/verify_stage_ai.py
+.\.venv\Scripts\python.exe -m pytest backend/tests/test_stage_ai_explanation.py -q
+```
+
+验证脚本保存证据包、grounding 预览、错误注入结果与正式文件前后哈希；配置完整时会发起真实模型请求。未配置模型时如实记录 `REAL_MODEL_TEST=NOT_EXECUTED`，确定性预览不计为真实模型输出。详细边界、API 和验证方法见 [Stage AI 辅助研判说明](docs/STAGE_AI_ASSISTANCE.md)。
+
 ## 项目目录结构
 
 以下列出主要目录，省略依赖、缓存和构建产物：
@@ -116,6 +139,7 @@ TraceBack/
 
 ## 更多说明
 
+- [Stage AI 辅助研判](docs/STAGE_AI_ASSISTANCE.md)：正式攻击链的只读解释、证据校验、风险分离和模型配置。
 - [Stage 1–4 正式流水线](docs/STAGE_1_4_PIPELINE.md)：唯一原生输入入口、Noise→Behavior 交接及历史入口边界。
 - [启动指南](docs/STARTUP.md)：数据准备、重新分析、切换场景、停止 Demo、端口设置与排错。
 - [验证命令](docs/STARTUP.md#验证命令)：后端测试、前端检查和浏览器验收。

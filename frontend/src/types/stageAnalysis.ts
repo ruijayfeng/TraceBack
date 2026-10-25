@@ -11,3 +11,10 @@ export interface StageEntity {entity_id: string; display_value: string; value: s
 export interface StageDetail extends Stage {host_entities: StageEntity[]; account_entities: StageEntity[]; process_entities: StageEntity[]; observed_sources: string[]}
 export interface StageTrace {analysis_id: string; trace: {stage?: StageDetail | null; evidence_types?: string[]; subject_id: string; subject_type?: string; relation_type?: string; reason?: string; evidence_summary: string; witness_alert_ids: string[]; winning_witness_alert_ids?: string[]; witness_alerts: {alert_id: string; source_type: string | null; timestamp: string | null; signature: string | null; alert_type: string | null}[]}; resolved_pointers: {alert_id: string; pointer: string; side?: string; value: unknown}[]}
 export interface StageSummary {analysis_id: string; summary: {counts: {input_count: number; kept_count: number; stage_count: number; host_count: number}; source_type: {value: string; count: number}[]; source_namespace: {value: string; count: number}[]; source_product: {value: string; count: number}[]; hosts: {value: string; count: number}[]; behavior: {value: string; count: number}[]; time_series: {time: string; count: number}[]}}
+export interface StageAIFact {fact_id:string; description:string; evidence_refs:string[]; field_refs:{alert_id:string;pointer:string;value:unknown}[]}
+export interface StageAIResult {
+  analysis_id:string; chain_id:string; status:'available'|'unavailable'; grounding_status:string; report_markdown:string|null;
+  report_json: null | {chain_id:string; stages:{stage_id:string;observed_facts:StageAIFact[];behavior_interpretation:{description:string;confidence:number};missing_evidence:string[];risk_analysis:{potential_impact:string[];confirmed_impact:StageAIFact[]}}[];
+    relations:{relation_id:string;relation_type:string;direction_status:string;relation_explanation:string;supporting_evidence:{claim_id:string;description:string;evidence_refs:string[]}[];limitations:string[]}[];
+    chain_summary:{summary:string;main_observed_activities:StageAIFact[];potential_overall_impact:string[];confirmed_overall_impact:StageAIFact[];uncertainties:string[]}};
+}

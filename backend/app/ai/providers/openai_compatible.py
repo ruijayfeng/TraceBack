@@ -26,9 +26,12 @@ class OpenAICompatibleProvider(LLMProvider):
         from app.ai.explanation import ExplanationDraft
         if not self.config.configured:
             raise ProviderError("provider_not_configured")
-        if len(context.payload.encode("utf-8")) > self.config.max_context_bytes:
+        payload = context.model_payload if hasattr(context, 'model_payload') else context.payload
+        if len(payload.encode("utf-8")) > self.config.max_context_bytes:
             raise ProviderError("context_size_exceeded")
-        body = {"model": self.model, "messages": prompt_messages(context, ExplanationDraft.model_json_schema()),
+        schema = context.response_schema if hasattr(context, 'response_schema') else ExplanationDraft.model_json_schema()
+        messages = context.messages(schema) if hasattr(context, 'messages') else prompt_messages(context, schema)
+        body = {"model": self.model, "messages": messages,
                 "response_format": {"type": "json_object"}}
         # No redirect can forward credentials to another origin; no ambient proxy.
         with httpx.Client(timeout=self.config.timeout_seconds, transport=self.transport,

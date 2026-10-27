@@ -9,7 +9,7 @@ test('ATTACK125 ⑨ chain flow → evidence drawer without page jumps → raw �
   await expect(page.getByRole('heading',{name:'125 条告警分析'})).toBeVisible();
   await expect(page.getByLabel('分析 ID',{exact:true})).toHaveCount(0);
   const counts=analysis.counts;
-  for(const [label,value] of [['输入告警',counts.input_count],['行为阶段',counts.stage_count],['已接受关系',counts.relation_count],['攻击链',counts.chain_count],['有向关系',counts.directed_count ?? 0],['无向关系',counts.undirected_count ?? 0],['拒绝建边',counts.no_relation_count ?? 0]]){
+  for(const [label,value] of [['输入告警',counts.input_count],['行为阶段',counts.stage_count],['已接受关系',counts.relation_count],['攻击链结构',counts.chain_count],['有向关系',counts.directed_count ?? 0],['无向关系',counts.undirected_count ?? 0],['拒绝建边',counts.no_relation_count ?? 0]]){
     await expect(page.locator('.metric').filter({has:page.locator('span',{hasText:new RegExp('^'+label+'$')})}).locator('strong')).toHaveText(String(value));
   }
   await expect(page.locator('.stage-chain-tabs button')).toHaveCount(counts.chain_count);

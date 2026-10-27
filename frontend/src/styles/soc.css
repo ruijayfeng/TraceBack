@@ -36,7 +36,7 @@
 .snapshot-range { display:flex; gap:8px; align-items:center; white-space:nowrap; font-size:12px; border:1px solid #dce6f3; padding:9px 12px; border-radius:5px; background:#fff; color:#506582; }
 .snapshot-range .ui-icon,.refresh-button .ui-icon { width:16px; height:16px; }
 .refresh-button { display:flex; align-items:center; gap:8px; height:38px; color:#1677ff; background:#fff; }
-.soc-app .overview-page .overview-metrics { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:12px; margin-bottom:14px; }
+.soc-app .overview-page .overview-metrics { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:12px; margin-bottom:14px; }
 .soc-app .overview-metric { display:flex; align-items:center; gap:14px; padding:14px; border:1px solid var(--line); border-top:1px solid var(--line); border-radius:6px; box-shadow:none; min-height:88px; }
 .soc-app .overview-metric .metric-title { font-size:12px; color:#546583; }
 .soc-app .overview-metric strong { font-size:28px; line-height:1.15; color:#122347; margin-top:4px; font-weight:650; letter-spacing:0; }

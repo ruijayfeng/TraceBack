@@ -1,10 +1,10 @@
 import type { AlertDetail, Chain, EdgeDetail, Explanation, IncidentDetail, IncidentRow, Overview, Page, SavedExplanation, TimelineItem } from '../types/domain';
-import type {StageCatalog, StageAnalysis, StageTrace, StageSummary, StageAIResult} from '../types/stageAnalysis';
+import type {StageCatalog, StageAnalysis, StageTrace, StageSummary, StageAIResult, StageRun, StageUpload} from '../types/stageAnalysis';
 export class APIError extends Error { constructor(public status: number, public code: string) { super(code); } }
 const safeCode = (value: unknown) => typeof value === 'string' && /^[a-z0-9_:.-]{1,100}$/.test(value) ? value : 'request_failed';
-async function request<T>(path: string, signal?: AbortSignal, method = 'GET', explanation = false): Promise<T> {
+async function request<T>(path: string, signal?: AbortSignal, method = 'GET', explanation = false, payload?: BodyInit, headers?: HeadersInit): Promise<T> {
   let response: Response;
-  try { response = await fetch('/api/v1' + path, {method, signal, headers: {Accept: 'application/json'}}); }
+  try { response = await fetch('/api/v1' + path, {method, signal, body:payload, headers: {Accept: 'application/json', ...headers}}); }
   catch (e) { if ((e as Error).name === 'AbortError') throw e; throw new APIError(0, 'network_unavailable'); }
   let body: unknown;
   try { body = await response.json(); } catch { throw new APIError(response.status, 'invalid_response'); }
@@ -15,7 +15,32 @@ async function request<T>(path: string, signal?: AbortSignal, method = 'GET', ex
 }
 const scope = (analysis: string, extra: Record<string, string | number> = {}) => '?' + new URLSearchParams({analysis_id: analysis, ...Object.fromEntries(Object.entries(extra).map(([k, v]) => [k, String(v)]))});
 const id = encodeURIComponent;
+function uploadWithPhase(file:File, signal:AbortSignal|undefined, onUploaded:()=>void):Promise<StageUpload> {
+  return new Promise((resolve,reject)=>{
+    const xhr=new XMLHttpRequest();
+    const abort=()=>xhr.abort();
+    const cleanup=()=>signal?.removeEventListener('abort',abort);
+    xhr.open('POST','/api/v1/stage-runs/uploads');
+    xhr.setRequestHeader('Accept','application/json');
+    xhr.setRequestHeader('Content-Type','application/octet-stream');
+    xhr.setRequestHeader('X-File-Name',encodeURIComponent(file.name));
+    xhr.upload.onload=onUploaded;
+    xhr.onerror=()=>{cleanup();reject(new APIError(0,'network_unavailable'));};
+    xhr.onabort=()=>{cleanup();reject(new DOMException('Upload aborted','AbortError'));};
+    xhr.onload=()=>{
+      cleanup();let body:StageUpload&{detail?:unknown};
+      try{body=JSON.parse(xhr.responseText);}catch{reject(new APIError(xhr.status,'invalid_response'));return;}
+      if(xhr.status<200||xhr.status>=300)reject(new APIError(xhr.status,safeCode(body.detail)));else resolve(body);
+    };
+    if(signal?.aborted){reject(new DOMException('Upload aborted','AbortError'));return;}
+    signal?.addEventListener('abort',abort,{once:true});xhr.send(file);
+  });
+}
 export const api = {
+  stageUpload: (file:File, s?:AbortSignal, onUploaded?:()=>void) => onUploaded?uploadWithPhase(file,s,onUploaded):request<StageUpload>('/stage-runs/uploads',s,'POST',false,file,{'Content-Type':'application/octet-stream','X-File-Name':encodeURIComponent(file.name)}),
+  stageStart: (uploadId:string, s?:AbortSignal) => request<StageRun>('/stage-runs',s,'POST',false,JSON.stringify({upload_id:uploadId}),{'Content-Type':'application/json'}),
+  stageRuns: (s?:AbortSignal) => request<{items:StageRun[]}>('/stage-runs',s),
+  stageRun: (runId:string, s?:AbortSignal) => request<StageRun>(`/stage-runs/${id(runId)}`,s),
   stageCatalog: (s?: AbortSignal) => request<StageCatalog>('/stage-analyses', s),
   stageAnalysis: (a: string, s?: AbortSignal) => request<StageAnalysis>(`/stage-analyses/${id(a)}`, s),
   stageSummary: (a: string, s?: AbortSignal) => request<StageSummary>(`/stage-analyses/${id(a)}/summary`, s),

@@ -17,15 +17,22 @@ function mockAnalysis(){
   vi.spyOn(api,'stageSummary').mockResolvedValue({analysis_id:aid,summary:{counts:{input_count:13,kept_count:13,stage_count:13,host_count:0},source_type:[],source_namespace:[],source_product:[],hosts:[],behavior:[],time_series:[]}});
 }
 describe('Module navigation and bounded lists',()=>{
+  it('keeps an explicit batch while the catalog is still loading after refresh',async()=>{
+    mockAnalysis();vi.mocked(api.stageCatalog).mockImplementation(()=>new Promise(()=>{}));
+    history.replaceState({},'','/?view=stages&analysis_id='+aid);render(<App/>);
+    await screen.findByRole('heading',{name:'13 条告警分析'});
+    fireEvent.click(within(screen.getByRole('navigation',{name:'功能模块'})).getByRole('link',{name:'态势总览'}));
+    expect(new URLSearchParams(location.search).get('analysis_id')).toBe(aid);
+  });
   it('navigates from home to alerts and back to overview while retaining the analysis scope',async()=>{
-    mockAnalysis();render(<App/>);await screen.findByRole('heading',{name:'态势总览'});
+    mockAnalysis();render(<App/>);await screen.findByRole('heading',{name:'安全运营态势总览'});
     const nav=screen.getByRole('navigation',{name:'功能模块'});
     fireEvent.click(within(nav).getByRole('link',{name:'安全告警'}));
     await screen.findByRole('heading',{name:'安全告警'});
     expect(new URLSearchParams(location.search).get('analysis_id')).toBe(aid);
     expect(screen.getAllByRole('button',{name:'查看原始告警'})).toHaveLength(10);
     fireEvent.click(within(nav).getByRole('link',{name:'态势总览'}));
-    await screen.findByRole('heading',{name:'态势总览'});
+    await screen.findByRole('heading',{name:'安全运营态势总览'});
     expect(screen.queryByRole('heading',{name:'13 条告警分析'})).not.toBeInTheDocument();
   });
   it('paginates alerts, resets paging on filtering and fetches raw data only when opened',async()=>{
@@ -43,8 +50,8 @@ describe('Module navigation and bounded lists',()=>{
     expect(raw).toHaveBeenCalledWith(aid,'alert_1',expect.any(AbortSignal));
   });
   it('opens the selected chain from the summary and retains its view on refresh',async()=>{
-    mockAnalysis();const app=render(<App/>);await screen.findByRole('heading',{name:'态势总览'});
-    fireEvent.click(screen.getAllByRole('button',{name:/^查看$/})[1]);
+    mockAnalysis();const app=render(<App/>);await screen.findByRole('heading',{name:'安全运营态势总览'});
+    fireEvent.click((await screen.findAllByRole('button',{name:/^查看$/}))[1]);
     await screen.findByRole('heading',{name:'13 条告警分析'});
     expect(new URLSearchParams(location.search).get('chain_id')).toBe('small');
     expect(document.querySelectorAll('.graph-node')).toHaveLength(1);

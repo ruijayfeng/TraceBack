@@ -6,19 +6,20 @@ test('modules retain snapshot scope, paginate, filter, open exact chains and sur
   const data=await(await request.get('/api/v1/stage-analyses/'+catalog.default_analysis_id)).json();
   const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
   await page.setViewportSize({width:1440,height:1000});
-  await page.goto('/');await expect(page.getByRole('heading',{name:'态势总览',exact:true})).toBeVisible({timeout:60000});
+  await page.goto('/');await expect(page.getByRole('heading',{name:'安全运营态势总览',exact:true})).toBeVisible({timeout:60000});
   await page.screenshot({path:'../outputs/ui_redesign/01-overview.png',fullPage:true});
   const nav=page.getByRole('navigation',{name:'功能模块'});
   const secondId=await page.locator('.recent-chains-table tbody tr').nth(1).locator('code').getAttribute('title');
   await page.locator('.recent-chains-table tbody tr').nth(1).getByRole('button',{name:'查看',exact:true}).click();
-  await expect(page.locator('.stage-chain-tabs button[aria-pressed=true]')).toContainText('攻击链 2');
+  await expect(page.locator('.chain-detail-heading code')).toHaveAttribute('title',secondId!);
   await expect(page).toHaveURL(new RegExp('chain_id='+secondId));
   await expect(page.locator('.graph-node')).toHaveCount(data.chains.find((c:{chain_id:string})=>c.chain_id===secondId).stage_count);
   await nav.getByRole('link',{name:'攻击链',exact:true}).click();
   await page.locator('.stage-chain-tabs button').first().click();
   await expect(page.locator('.graph-node')).toHaveCount(Math.max(...data.chains.map((c:{stage_count:number})=>c.stage_count)));
   await page.screenshot({path:'../outputs/ui_redesign/02-chains.png',fullPage:true});
-  expect(await page.evaluate(()=>document.documentElement.scrollHeight)).toBeLessThan(1250);
+  expect((await page.locator('.event-flow').boundingBox())!.y).toBeLessThan(900);
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBeTruthy();
   await page.getByRole('button',{name:'阶段列表',exact:true}).click();
   await expect(page.locator('.graph-node')).toHaveCount(0);
   await page.reload();await expect(page.getByRole('heading',{name:'阶段时间线'})).toBeVisible();
@@ -57,12 +58,12 @@ test('modules retain snapshot scope, paginate, filter, open exact chains and sur
     expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBeTruthy();
   }
   await nav.getByRole('link',{name:'态势总览'}).click();
-  await expect(page.getByRole('heading',{name:'态势总览',exact:true})).toBeVisible();
+  await expect(page.getByRole('heading',{name:'安全运营态势总览',exact:true})).toBeVisible();
   await expect(page.getByRole('heading',{name:'关系决策分布'})).toBeHidden();
   await page.getByRole('button',{name:'展开关系与来源分布'}).click();
   await expect(page.getByRole('heading',{name:'关系决策分布'})).toBeVisible();
   await page.getByRole('button',{name:'收起关系与来源分布'}).click();
-  expect(await page.evaluate(()=>document.documentElement.scrollHeight)).toBeLessThan(1700);
+  expect((await page.getByRole('img',{name:'告警时间分布折线图'}).boundingBox())!.y).toBeLessThan(1300);
   await page.screenshot({path:'../outputs/ui_redesign/07-mobile.png',fullPage:true});
   expect(errors).toEqual([]);
 });

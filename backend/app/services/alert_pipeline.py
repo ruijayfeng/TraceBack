@@ -15,6 +15,7 @@ from app.noise_filter.models import NoiseFilterResult
 from app.stages.models import BehaviorAnnotation
 from app.stages.behavior import normalize_behavior
 from app.stages.config import load_stage_config
+from app.services.pipeline_progress import notify
 
 ROOT = Path(__file__).resolve().parents[3]
 OFFICIAL_PIPELINE_ENTRY = 'app.services.alert_pipeline.load_alert_pipeline'
@@ -61,40 +62,54 @@ def normalize_behaviors(alerts, config, resolver=None):
 
 
 def prepare_alerts(alerts, *, behavior_config=None, noise_config=None, resolver=None, source_settings=None,
-                   entities=None, identity_projection=None):
+                   entities=None, identity_projection=None, progress=None):
     policy = behavior_config or load_stage_config(ROOT/'configs/behavior-stage-v1.yaml')
+    notify(progress, 3, 'RUNNING')
     noise = filter_alerts(alerts, noise_config)
+    notify(progress, 3, 'COMPLETED')
     kept_ids = {a.alert_id for a in noise.kept_alerts}
     kept_entities = None if entities is None else [e.model_copy(update=dict(alert_ids=sorted(
         set(e.alert_ids) & kept_ids))) for e in entities if set(e.alert_ids) & kept_ids]
+    notify(progress, 4, 'RUNNING')
     result = NormalizedAlerts(noise, normalize_behaviors(noise.kept_alerts, policy, resolver),
                               policy.digest, source_settings or {}, kept_entities, identity_projection, entities or [])
     result.validate_handoff()
+    notify(progress, 4, 'COMPLETED')
     return result
 
 
-def ingest_records(records, adapters, *, behavior_config=None, noise_config=None, resolver=None):
+def ingest_records(records, adapters, *, behavior_config=None, noise_config=None, resolver=None, progress=None):
     from app.entities.extraction import extract_entities
     def canonical():
         for record in records:
             yield adapters[record['source_type']].convert_record(record)
     settings = {a.settings.source_namespace: a.settings for a in adapters.values()}
-    extracted = extract_entities(list(canonical()), settings, contract='front-data-v1')
+    notify(progress, 1, 'RUNNING')
+    alerts = list(canonical())
+    notify(progress, 1, 'COMPLETED')
+    notify(progress, 2, 'RUNNING')
+    extracted = extract_entities(alerts, settings, contract='front-data-v1')
+    notify(progress, 2, 'COMPLETED')
     return prepare_alerts(extracted.alerts, behavior_config=behavior_config, noise_config=noise_config,
                           resolver=resolver, source_settings=settings, entities=extracted.entities,
-                          identity_projection=extracted.identity_projection)
+                          identity_projection=extracted.identity_projection, progress=progress)
 
 
-def load_alert_pipeline(input_path, *, behavior_config=None, noise_config=None, resolver=None):
+def native_alert_adapters():
+    """The single native ingress registry shared by CLI and upload validation."""
+    config = load_config(ROOT/'configs/algorithm-v5-evidence-semantics.yaml',
+                         deployment_override=ROOT/'configs/front-data-sources.yaml')
+    routing = read_yaml(ROOT/'configs/front-data-profiles.yaml')['sources']
+    return {s: MultiSourceAdapter(config, AdapterSettings(**v), s) for s,v in routing.items()}
+
+
+def load_alert_pipeline(input_path, *, behavior_config=None, noise_config=None, resolver=None, progress=None):
     """Read native JSONL; reject contaminated input, never read labels or publish snapshots."""
     input_path = Path(input_path).resolve()
     if any(p.casefold() in {'ground_truth', 'evaluation', 'protected', 'validated'} for p in input_path.parts):
         raise ValueError('input_must_be_unannotated_security_alerts')
-    config = load_config(ROOT/'configs/algorithm-v5-evidence-semantics.yaml',
-                         deployment_override=ROOT/'configs/front-data-sources.yaml')
-    routing = read_yaml(ROOT/'configs/front-data-profiles.yaml')['sources']
-    adapters = {s: MultiSourceAdapter(config, AdapterSettings(**v), s) for s,v in routing.items()}
+    adapters = native_alert_adapters()
     with input_path.open(encoding='utf-8-sig') as stream:
         result = ingest_records((json.loads(line) for line in stream if line.strip()), adapters,
-            behavior_config=behavior_config, noise_config=noise_config, resolver=resolver)
+            behavior_config=behavior_config, noise_config=noise_config, resolver=resolver, progress=progress)
     return result

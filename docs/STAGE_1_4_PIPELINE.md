@@ -68,5 +68,5 @@ GT 文件只允许独立完整性检查按字节哈希，不解析给运行算�
 | services/analysis.py / normalization.py | LEGACY 历史回放与快照兼容；不是正式 Stage 1–4 入口 |
 | 已封存快照读取器 | 历史快照兼容，不代表按新流水线重新运行 |
 
-新入口及字段修复不改写旧快照。⑤⑥ 修复与调用链见 [STAGE_5_6_REPAIR.md](STAGE_5_6_REPAIR.md)，
-不进入 ⑦ Stage Pair Candidate Generation 或后续阶段。
+新入口及字段修复不改写旧快照。⑤⑥ 的实现与调用链位于 `backend/app/services/stage_pipeline.py`；
+本节描述的 Stage 1–4 入口不进入 ⑦ Stage Pair Candidate Generation 或后续阶段。

@@ -206,16 +206,8 @@ export default function OverviewPage({data, summary, onOpenChain, onNavigate}: {
   const [query,setQuery]=useState('');
   const [showDistributions,setShowDistributions]=useState(false);
 
-  return <div className={'overview-page'+(showDistributions?' show-distributions':'')}>
-    <div className="overview-heading">
-      <div>
-        <h1>态势总览</h1>
-        <p>多源告警归并，沿阶段关系追溯原始证据。</p>
-      </div>
-      <span className="badge verified">最新正式分析 · ⑨ 攻击链重建</span>
-    </div>
-
-    <div className="scope-toolbar"><form className="scope-search" onSubmit={e=>{e.preventDefault();onNavigate('alerts',query);}}><Icon name="search"/><input aria-label="搜索告警或阶段" placeholder="搜索告警 ID、阶段 ID 或行为…" value={query} onChange={e=>setQuery(e.target.value)}/><button type="submit">搜索</button></form><span className="snapshot-range"><Icon name="clock"/>{summary.summary.time_series[0]?.time.slice(0,10) ?? '当前快照'} · 快照时段</span><button className="refresh-button" onClick={()=>location.reload()}><Icon name="refresh"/>刷新</button></div>
+  return <div className={'overview-page'+(showDistributions?' show-distributions':'')} data-analysis-id={data.analysis_id}>
+    <div className="scope-toolbar"><form className="scope-search" onSubmit={e=>{e.preventDefault();onNavigate('alerts',query);}}><Icon name="search"/><input aria-label="搜索告警或阶段" placeholder="搜索告警 ID、阶段 ID 或行为…" value={query} onChange={e=>setQuery(e.target.value)}/><button type="submit">搜索</button></form><span className="snapshot-range"><Icon name="clock"/>{summary.summary.time_series[0]?.time.slice(0,10) ?? '当前快照'} · 快照时段</span><span className="badge verified">{data.official?'正式验收基线':data.source_stage===9?'当前批次':'历史快照'} · {data.source_stage===9?'⑨ 攻击链重建':'阶段分析'}</span></div>
 
     <MetricCards data={data}/>
     <button className="mobile-distribution-toggle" aria-expanded={showDistributions} onClick={()=>setShowDistributions(v=>!v)}>{showDistributions?'收起':'展开'}关系与来源分布</button>

@@ -87,6 +87,7 @@ class Stage9ArtifactReader:
                     evidence=stage8['evidence'], alerts=stage8['alerts'],
                     entities=stage8.get('entities', []),
                     reconstruction=reconstruction,
+                    graph_input_digest=graph.input_digest,
                     input_digest=reconstruction.input_digest)
 
     # -- display projections --------------------------------------------

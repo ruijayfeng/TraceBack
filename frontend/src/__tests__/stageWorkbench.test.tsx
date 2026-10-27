@@ -35,7 +35,7 @@ describe('Stage workbench',()=>{
     const legacy=vi.spyOn(api,'overview');
     history.replaceState({},'', '/');
     const {unmount}=render(<App/>);
-    expect(await screen.findByRole('heading',{name:'态势总览'})).toBeInTheDocument();
+    expect(await screen.findByRole('heading',{name:'安全运营态势总览'})).toBeInTheDocument();
     expect(screen.queryByLabelText('分析 ID')).not.toBeInTheDocument();
     expect(legacy).not.toHaveBeenCalled();
     unmount();

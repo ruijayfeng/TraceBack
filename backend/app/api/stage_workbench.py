@@ -13,6 +13,7 @@ default / latest / official entry.
 """
 import json
 import threading
+from datetime import datetime
 from hashlib import sha256
 from pathlib import Path
 
@@ -29,7 +30,7 @@ from app.evidence_trace.snapshot import file_sha256
 
 # The official ⑨ artifact directory, relative to the project root. It is the
 # primary, latest, official fact source consumed by this workbench.
-STAGE9_ARTIFACT = 'outputs/attack125_final_rerun_20261023_measured'
+STAGE9_ARTIFACT = 'outputs/stage9_formal_acceptance_20261022/run1'
 
 
 def _stage9_analysis_id():
@@ -43,6 +44,11 @@ def _stage9_analysis_id():
 
 
 STAGE9_ANALYSIS_ID = _stage9_analysis_id()
+# Explicit source registry: preserve the previously displayed measured snapshot
+# as a separately named historical reconstruction line, never as fallback.
+MEASURED_ARTIFACT = 'outputs/attack125_final_rerun_20261023_measured'
+MEASURED_ID = 'ana_' + sha256(('stage9:' + MEASURED_ARTIFACT).encode('utf8')).hexdigest()
+BASELINES = {STAGE9_ANALYSIS_ID: STAGE9_ARTIFACT, MEASURED_ID: MEASURED_ARTIFACT}
 
 
 class StageWorkbench:
@@ -50,30 +56,49 @@ class StageWorkbench:
         self.root = Path(root).resolve()
         self.cache = {}
         self.lock = threading.Lock()
+        from app.services.stage_runs import StageRunService
+        self.runs = StageRunService(self.root)
 
     def manifest_path(self, analysis_id):
         return self.root / 'outputs/analyses' / checked_id(analysis_id) / 'manifest.json'
 
-    def stage9_reader(self):
-        return Stage9ArtifactReader(self.root, self.root / STAGE9_ARTIFACT)
+    def is_stage9(self, analysis_id):
+        return analysis_id in BASELINES or (self.runs.directory(analysis_id) / 'run.json').is_file()
+
+    def stage9_reader(self, analysis_id=STAGE9_ANALYSIS_ID):
+        if analysis_id in BASELINES:
+            return Stage9ArtifactReader(self.root, self.root / BASELINES[analysis_id])
+        return self.runs.reader(analysis_id)
+
+    def reader_for(self, analysis_id):
+        # Keep the historical no-argument primary-reader extension point.
+        return self.stage9_reader() if analysis_id == STAGE9_ANALYSIS_ID else self.stage9_reader(analysis_id)
 
     def catalog(self):
         items = []
 
         # -- Primary / official: the sealed ⑨ reconstruction artifact ----------
-        try:
-            reader = self.stage9_reader()
-            overview = reader.overview()
-            artifact = self.root / STAGE9_ARTIFACT / 'stage9.json'
-            items.append(dict(
-                analysis_id=STAGE9_ANALYSIS_ID,
-                algorithm_version=overview['contract_version'],
-                input_count=overview['counts']['input_count'],
-                published_at=artifact.stat().st_mtime,
-                official=True, latest=True, default=True, read_only=True,
-                source_stage=9, pipeline='reconstruction.py'))
-        except (OSError, ValueError, KeyError):
-            pass
+        for identity, source in BASELINES.items():
+            try:
+                overview = self.reader_for(identity).overview()
+                artifact = self.root / source / 'stage9.json'
+                primary = identity == STAGE9_ANALYSIS_ID
+                items.append(dict(analysis_id=identity, algorithm_version=overview['contract_version'],
+                    input_count=overview['counts']['input_count'], published_at=artifact.stat().st_mtime,
+                    official=primary, latest=primary, default=primary, read_only=True,
+                    source_stage=9, pipeline='reconstruction.py', filename=source,
+                    status='SUCCEEDED', result_available=True, baseline=True))
+            except (OSError, ValueError, KeyError):
+                pass
+
+        for run in self.runs.history():
+            if run['status'] == 'SUCCEEDED':
+                items.append(dict(analysis_id=run['run_id'], run_id=run['run_id'],
+                    algorithm_version=run['artifact_type'], input_count=run['input_count'],
+                    published_at=datetime.fromisoformat(run['created_at']).timestamp(), official=False,
+                    latest=False, default=False, read_only=True, source_stage=9,
+                    pipeline=run['pipeline'], filename=run['filename'], status=run['status'],
+                    result_available=run['result_available']))
 
         # -- Secondary / legacy: sealed assembly.py snapshots -------------------
         for domain in (self.root / 'data/processed').glob('ana_*/stage_attack_chains.jsonl'):
@@ -97,8 +122,8 @@ class StageWorkbench:
         return dict(items=items, default_analysis_id=default)
 
     def load(self, analysis_id):
-        if analysis_id == STAGE9_ANALYSIS_ID:
-            return self._load_stage9()
+        if self.is_stage9(analysis_id):
+            return self._load_stage9(analysis_id)
         with self.lock:
             try:
                 path = self.manifest_path(analysis_id)
@@ -145,11 +170,11 @@ class StageWorkbench:
             except (OSError, ValueError, KeyError, TypeError):
                 raise QueryError(409, 'stage_snapshot_integrity_error') from None
 
-    def _load_stage9(self):
+    def _load_stage9(self, analysis_id=STAGE9_ANALYSIS_ID):
         """Read-only projection of the official ⑨ artifact; never recomputed."""
         with self.lock:
             try:
-                reader = self.stage9_reader()
+                reader = self.reader_for(analysis_id)
                 overview = reader.overview()
                 receipt = {
                     str(reader.stage8_path()): file_sha256(reader.stage8_path()),
@@ -160,17 +185,19 @@ class StageWorkbench:
                 raise QueryError(409, 'stage_snapshot_integrity_error') from exc
 
     def overview(self, analysis_id):
-        if analysis_id == STAGE9_ANALYSIS_ID:
-            data = self._load_stage9()
+        if self.is_stage9(analysis_id):
+            data = self._load_stage9(analysis_id)
             overview = data['overview']
             return dict(analysis_id=analysis_id,
                         algorithm_version=overview['contract_version'], status='sealed',
                         counts=overview['counts'], chains=overview['chains'],
                         stages=overview['stages'], relations=overview['relations'],
                         decisions=overview['decisions'],
-                        data_source=STAGE9_ARTIFACT,
+                        run_id=analysis_id if analysis_id not in BASELINES else None,
+                        data_source=BASELINES.get(analysis_id, str(self.runs.directory(analysis_id) / 'result')),
                         artifact_sha256=data['receipt'],
-                        read_only=True, official=True, latest=True, source_stage=9)
+                        read_only=True, official=analysis_id == STAGE9_ANALYSIS_ID,
+                        latest=analysis_id == STAGE9_ANALYSIS_ID, source_stage=9)
         data = self.load(analysis_id)
         graph, chains = data['graph'], data['result'].chains
         stages = [s.model_dump(mode='json', exclude={'aggregation_basis'}) for s in graph.stages.values()]
@@ -188,6 +215,8 @@ class StageWorkbench:
 def install_stage_workbench(app, root):
     service = StageWorkbench(root)
     app.state.stage_workbench = service
+    from .stage_runs import install_stage_runs
+    install_stage_runs(app, service.runs)
     router = APIRouter(prefix='/api/v1/stage-analyses')
 
     def no_query(request):
@@ -207,15 +236,15 @@ def install_stage_workbench(app, root):
     @router.get('/{analysis_id}/summary')
     def summary(analysis_id: AnalysisID, request: Request):
         no_query(request)
-        if analysis_id == STAGE9_ANALYSIS_ID:
-            return dict(analysis_id=analysis_id, summary=service.stage9_reader().summary())
+        if service.is_stage9(analysis_id):
+            return dict(analysis_id=analysis_id, summary=service.reader_for(analysis_id).summary())
         raise QueryError(404, 'summary_not_available_for_legacy')
 
     @router.get('/{analysis_id}/traces/{subject_id}')
     def trace(analysis_id: AnalysisID, subject_id: str, request: Request):
         no_query(request)
-        if analysis_id == STAGE9_ANALYSIS_ID:
-            trace = service.stage9_reader().trace_projection(subject_id)
+        if service.is_stage9(analysis_id):
+            trace = service.reader_for(analysis_id).trace_projection(subject_id)
             if trace is None:
                 raise QueryError(404, 'stage_evidence_not_found')
             return dict(analysis_id=analysis_id, trace=trace,
@@ -231,8 +260,8 @@ def install_stage_workbench(app, root):
     @router.get('/{analysis_id}/alerts/{alert_id}')
     def raw(analysis_id: AnalysisID, alert_id: AlertID, request: Request):
         no_query(request)
-        if analysis_id == STAGE9_ANALYSIS_ID:
-            raw_alert = service.stage9_reader().raw_alert(alert_id)
+        if service.is_stage9(analysis_id):
+            raw_alert = service.reader_for(analysis_id).raw_alert(alert_id)
             if raw_alert is None:
                 raise QueryError(404, 'stage_alert_not_found')
             return dict(analysis_id=analysis_id, raw_alert=raw_alert)

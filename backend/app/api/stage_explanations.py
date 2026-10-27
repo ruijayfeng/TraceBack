@@ -10,7 +10,6 @@ from app.ai.stage_explanation import StageExplanationService, StageReportStore
 from app.models.base import AnalysisID
 from app.evidence_trace.snapshot import file_sha256
 from app.services.queries import QueryError
-from .stage_workbench import STAGE9_ANALYSIS_ID
 
 _lock = Lock()
 
@@ -22,10 +21,10 @@ def install_stage_explanations(app, root, workbench):
     def context_for(analysis_id, chain_id, request):
         if request.query_params:
             raise HTTPException(400, 'unknown_query_parameter')
-        if analysis_id != STAGE9_ANALYSIS_ID:
+        if not workbench.is_stage9(analysis_id):
             raise QueryError(404, 'stage_ai_requires_official_chain')
         try:
-            return build_stage_context(workbench.stage9_reader(), chain_id)
+            return build_stage_context(workbench.reader_for(analysis_id), chain_id)
         except LookupError:
             raise QueryError(404, 'stage_chain_not_found') from None
         except (OSError, ValueError, KeyError, TypeError):

@@ -1,4 +1,7 @@
-export interface StageCatalogItem {analysis_id: string; input_count: number; algorithm_version: string; official?: boolean; latest?: boolean; default?: boolean; read_only?: boolean; source_stage?: number; pipeline?: string}
+export interface StageCatalogItem {analysis_id: string; input_count: number; algorithm_version: string; official?: boolean; latest?: boolean; default?: boolean; read_only?: boolean; source_stage?: number; pipeline?: string; filename?:string; baseline?:boolean; result_available?:boolean}
+export interface InputValidation {status:'VALID'|'INVALID';total_count:number;valid_count:number;invalid_count:number;errors:{line:number;field:string;reason:string}[]}
+export interface StageUpload {upload_id:string;filename:string;size_bytes:number;sha256:string;validation:InputValidation}
+export interface StageRun {run_id:string;filename:string;input_count:number;input_sha256:string;status:'QUEUED'|'VALIDATING'|'RUNNING'|'SUCCEEDED'|'FAILED';created_at:string;started_at:string|null;finished_at:string|null;duration_seconds:number|null;current_stage:string|null;failed_stage:string|null;exit_code:number|null;failure_reason:string|null;result_available:boolean;unavailable_reason?:string;recent_log:string;stages:{stage:number;name:string;status:string}[]}
 export interface StageCatalog {default_analysis_id: string | null; items: StageCatalogItem[]}
 export interface Stage {stage_id: string; community_id: string; behavior: string; start_time: string; end_time: string; alert_ids: string[]; alert_count: number; source_types: string[]; evidence_summary: string}
 // Formal ⑨ relation kinds (reconstruction.py line) and legacy kinds (assembly.py line).

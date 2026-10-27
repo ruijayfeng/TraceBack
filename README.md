@@ -10,7 +10,7 @@
 
 **新电脑或尚未安装依赖时，按本节执行一次。** 准备 Python **3.11**（含 Windows Python Launcher）、Node.js **24** 和 npm。
 
-**查看结果需要已有分析快照：**新版默认首页需要从原机器复制 `outputs/attack125_final_rerun_20261023_measured/`，其中须包含完整的 `stage8.json` 和 `stage9.json`。查看旧版分析还需对应的 `data/processed/<analysis_id>/` 和 `outputs/analyses/<analysis_id>/`。这些快照不随 GitHub 分发；当前副本已有可查询快照，安装依赖本身不会生成分析结果。查看已有结果使用下方工作台入口，无需 AIT-ADS 原始数据登记文件。
+**分析入口与已有快照：**启动后可从首页“导入告警”上传符合原生输入契约的 JSONL 文件，校验通过后运行后台分析。若要查看本机已有正式基线，须从原机器复制完整的 `outputs/stage9_formal_acceptance_20261022/`（包含 `run1/stage8.json` 和 `run1/stage9.json`）；原 `outputs/attack125_final_rerun_20261023_measured/` 作为独立历史快照保留。查看旧版分析还需对应的 `data/processed/<analysis_id>/` 和 `outputs/analyses/<analysis_id>/`。这些数据与快照不随 GitHub 分发，安装依赖本身不会生成分析结果。工作台入口无需 AIT-ADS 原始数据登记文件。
 
 打开 PowerShell，按顺序执行（项目路径不同时替换第一行）：
 
@@ -49,6 +49,14 @@ cd D:\Code_WorkSpace\TraceBack
 工作台直接读取已有快照，不经过 `scripts/demo.py` 的 AIT-ADS 数据检查。旧版 Demo 的重新分析、场景切换及其数据前提见[启动指南](docs/STARTUP.md#旧版-ait-ads-demo需要原始数据)。
 
 如果只是重新打开终端，直接日常启动即可；前端代码改动后，使用上述工作台入口前需重新运行 `npm.cmd --prefix frontend run build`；依赖清单或锁文件变动后，再安装对应依赖。8000 被占用时，按[启动指南](docs/STARTUP.md#查看已有分析快照推荐入口)更换端口。
+
+## 导入告警与后台分析
+
+首页以安全运营态势总览为中心，通过标题右侧“导入告警”打开操作抽屉。选择 UTF-8 原生 JSONL 文件（最大 16 MiB）后，系统执行真实字段契约校验，展示通过数量及具体错误行、字段和原因；校验通过后点击“开始分析”。
+
+抽屉显示正式①～⑨流水线的真实阶段状态和日志。关闭抽屉不会取消后台任务，顶部状态可再次打开任务详情；分析成功且产物检查通过后，页面自动切换到本次结果。当前批次工具栏支持历史切换，完整任务列表、失败原因与日志集中在“分析记录”页。
+
+输入、任务登记和结果保存在本地 `outputs/workbench_runs/`，重启后可恢复读取。接口、持久化和验收细节见[告警导入与后台分析说明](docs/WORKBENCH_RUNS.md)，首页布局与截图说明见[首页 UI 验收记录](docs/HOME_UI_ADJUSTMENT.md)。
 
 ## 修改 UI 时怎么启动
 

@@ -9,6 +9,7 @@ from app.stages.config import load_stage_config
 from app.stages.models import StageResult
 from app.stage_candidates import StagePairCandidateResult, load_candidate_config, generate_stage_pair_candidates
 from app.stage_evidence import CrossStageEvidenceResult, load_evidence_config, validate_stage_pair_candidates
+from app.services.pipeline_progress import notify
 
 OFFICIAL_STAGE_PIPELINE_ENTRY = 'app.services.stage_pipeline.load_stage_pipeline'
 
@@ -69,7 +70,7 @@ class StagePipelineRun:
                 **{k:v for k,v in self.evidence_result.statistics.items() if k != 'INPUT_ALERTS'}}
 
 
-def prepare_stage_pipeline(prepared, *, community_config=None, behavior_config=None, candidate_config=None, evidence_config=None):
+def prepare_stage_pipeline(prepared, *, community_config=None, behavior_config=None, candidate_config=None, evidence_config=None, progress=None):
     """Consume an already completed ①–④ handoff; never re-run precursors."""
     from app.stages import aggregation
     if not isinstance(prepared, NormalizedAlerts) or prepared.entities is None:
@@ -77,24 +78,32 @@ def prepare_stage_pipeline(prepared, *, community_config=None, behavior_config=N
     prepared.validate_handoff()
     community_policy = community_config or load_community_config(ROOT/'configs/community-v1.yaml')
     behavior_policy = behavior_config or load_stage_config(ROOT/'configs/behavior-stage-v1.yaml')
+    notify(progress, 5, 'RUNNING')
     community = prepare_communities(prepared, prepared.source_settings, community_policy)
+    notify(progress, 5, 'COMPLETED')
+    notify(progress, 6, 'RUNNING')
     stages = aggregation.aggregate_stages(community, prepared.source_settings, community_policy, behavior_policy)
+    notify(progress, 6, 'COMPLETED')
     candidate_policy = candidate_config or load_candidate_config(ROOT/'configs/stage-candidates-v1.yaml')
+    notify(progress, 7, 'RUNNING')
     candidates = generate_stage_pair_candidates(stages, community.alerts, community.entities,
         prepared.source_settings, community_policy, candidate_policy)
+    notify(progress, 7, 'COMPLETED')
     evidence_policy = evidence_config or load_evidence_config(ROOT/'configs/stage-evidence-v1.yaml')
+    notify(progress, 8, 'RUNNING')
     evidence = validate_stage_pair_candidates(candidates, stages, community.alerts, community.entities,
         prepared.source_settings, community_policy, evidence_policy)
     result = StagePipelineRun(prepared, community, stages, candidates, evidence)
     result.statistics  # Verify partition and raw pointers before returning success.
+    notify(progress, 8, 'COMPLETED')
     return result
 
 
-def load_stage_pipeline(input_path, *, community_config=None, behavior_config=None, noise_config=None, candidate_config=None, evidence_config=None):
+def load_stage_pipeline(input_path, *, community_config=None, behavior_config=None, noise_config=None, candidate_config=None, evidence_config=None, progress=None):
     """Read native alerts once, execute ①–⑧ once, return decisions without publishing.
 
     No semantic resolver is enabled by this entry. ⑥ consumes ④ annotations.
     """
-    prepared = load_alert_pipeline(input_path, behavior_config=behavior_config, noise_config=noise_config)
+    prepared = load_alert_pipeline(input_path, behavior_config=behavior_config, noise_config=noise_config, progress=progress)
     return prepare_stage_pipeline(prepared, community_config=community_config, behavior_config=behavior_config,
-                                  candidate_config=candidate_config, evidence_config=evidence_config)
+                                  candidate_config=candidate_config, evidence_config=evidence_config, progress=progress)

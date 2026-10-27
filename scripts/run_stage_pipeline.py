@@ -9,11 +9,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]/'backend'))
 from app.stage_chains.pipeline import load_attack_chain_pipeline
 
 
-def execute(input_path, *, output=None):
+def execute(input_path, *, output=None, progress=None):
     if output is not None:
         output = Path(output)
         output.mkdir(parents=True, exist_ok=False)
-    result = load_attack_chain_pipeline(input_path)
+    result = load_attack_chain_pipeline(input_path, **({'progress': progress} if progress else {}))
     if output is not None:
         upstream = result.upstream
         source = dict(alerts=[a.model_dump(mode='json') for a in upstream.community.alerts],
@@ -43,5 +43,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--input', type=Path, required=True)
     parser.add_argument('--output', type=Path, help='New output directory; existing paths are never overwritten')
+    parser.add_argument('--progress-jsonl', action='store_true', help='Emit read-only stage notifications to stdout')
     args = parser.parse_args()
-    execute(args.input, output=args.output)
+    observer = (lambda event: print('@@TRACEBACK_PROGRESS ' + json.dumps(event, ensure_ascii=False), flush=True)) if args.progress_jsonl else None
+    execute(args.input, output=args.output, progress=observer)

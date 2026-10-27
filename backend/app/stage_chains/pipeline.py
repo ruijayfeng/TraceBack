@@ -2,6 +2,7 @@
 from dataclasses import dataclass
 
 from app.services.stage_pipeline import StagePipelineRun, load_stage_pipeline
+from app.services.pipeline_progress import notify
 from .reconstruction import (AttackChainReconstruction, FrozenStageGraph,
                              reconstruct_attack_chains, validate_reconstruction)
 
@@ -25,8 +26,10 @@ class AttackChainPipelineRun:
 def load_attack_chain_pipeline(input_path, **upstream_options):
     """Read native input once; consume exactly the returned formal ⑧ objects."""
     upstream = load_stage_pipeline(input_path, **upstream_options)
+    notify(upstream_options.get('progress'), 9, 'RUNNING')
     graph = FrozenStageGraph.from_stage8(upstream.stages.stages,
         upstream.evidence_result, upstream.community.alerts)
     reconstruction = reconstruct_attack_chains(graph)
     validate_reconstruction(reconstruction, graph)
+    notify(upstream_options.get('progress'), 9, 'COMPLETED')
     return AttackChainPipelineRun(upstream, graph, reconstruction)

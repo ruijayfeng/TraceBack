@@ -131,23 +131,24 @@ TraceBack/
 
 Rare UI 组件使用需保留其版权与许可声明；Rare UI 名称、logo 与站点设计不在组件许可证范围内。
 
-## UI 开发与验收（`ui/optimization`）
+## UI 开发与验收（`pr/ui-optimization`）
 
-设计规范见 [docs/DESIGN.md](docs/DESIGN.md)，产品/信息架构见 [docs/PRODUCT.md](docs/PRODUCT.md)。
+设计方向：**framed sheet** —— pale blue-grey 的 L 形外壳 + 白色 paper 工作区，颜色只给数据/状态/一个主操作；工作台第一块是「追溯带」（输入告警 → 标准化 → 去重 → 安全事件），不是 KPI 卡片墙。规范见 [docs/DESIGN.md](docs/DESIGN.md)，产品/信息架构见 [docs/PRODUCT.md](docs/PRODUCT.md)。
 
 ```bash
 cd frontend
 npm run typecheck        # TypeScript
-npm run test:run         # Vitest（当前 52 tests）
+npm run test:run         # Vitest（当前 61 tests）
 npm run test:e2e:list    # Playwright 收集检查（无需后端）
-npm run test:e2e         # 自包含 Playwright（route 拦截 fixture，端口 4174）
+npm run test:e2e         # 自包含 Playwright（route 拦截 fixture，端口 4174；含 axe 0 violations）
 npm run test:e2e:visual  # 视觉基线截图 → ../design-libs/baseline/visual/
+npm run build && npm run preview  # 生产构建 + 4175 预览（验证 minified CSS 与真实 API 代理）
 npm run verify           # typecheck + Vitest + build
 npm run detect:ui        # Impeccable 设计 detector 源码扫描（信息性）
 npm run detect:ui:check  # detector ratchet（只对新增 P0 失败）
 ```
 
-- 项目级设计技能（本地可选，未纳入版本库）：`TraceBack/.dsh/skills/`（Impeccable 4.8.0 + emilkowalski 13 个技能）。
+- 项目级设计技能（本地可选，未纳入版本库）：`TraceBack/.dsh/skills/`（Impeccable 4.8.0 + emilkowalski 13 个技能）与 `TraceBack/.agents/`（taste-skill v2，用于方向与 inspector 验收）。
 - 可访问性：`docs/A11Y-MANUAL-CHECKLIST.md`；OpenAPI 快照：`docs/openapi-workbench.json`（`PYTHONPATH=backend python scripts/export_openapi.py --check`）。
 - 视觉/设计系统说明与动效规范：`docs/DESIGN.md`；产品说明：`docs/PRODUCT.md`；最终交付报告：`docs/UI-OPTIMIZATION-REPORT.md`；审计证据：`docs/UI-AUDIT.md`；第三方文件级来源：`THIRD_PARTY_NOTICES.md`。
 - 深链示例：`?analysis_id=<id>&incident_id=<id>&node_id=<nod_id>&timeline_page=2&evidence=<alt_id>`；`/` 聚焦搜索、`Esc` 关闭证据、`j/k` 列表行导航。

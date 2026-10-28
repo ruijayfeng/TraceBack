@@ -1,6 +1,7 @@
 import { RotateCcw } from "lucide-react";
 import { describeError } from "@/lib/errors";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import { TraceIcon } from "@/components/ui/trace-icon";
 
 /**
@@ -30,14 +31,16 @@ export function ErrorState({
       </div>
       <p className="mt-1 mb-0 text-sm">{described.message}</p>
       {onRetry && described.retryable && (
-        <button
-          className="mt-3 inline-flex min-h-8 items-center gap-1.5 rounded-md border border-current/25 bg-white/70 px-2.5 text-xs font-medium text-destructive-foreground"
+        <Button
+          className="mt-2"
           onClick={onRetry}
+          size="xs"
           type="button"
+          variant="outline"
         >
           <TraceIcon icon={RotateCcw} size={13} />
           重试
-        </button>
+        </Button>
       )}
     </div>
   );

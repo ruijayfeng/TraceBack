@@ -16,14 +16,14 @@ export function TextSkeleton({ lines = 3, className }: { lines?: number; classNa
 
 export function TableSkeleton({ rows = 6, columns = 6 }: { rows?: number; columns?: number }) {
   return (
-    <div aria-busy="true" aria-label="正在加载列表" className="table-scroll" role="status">
-      <table className="incident-table">
+    <div aria-busy="true" aria-label="正在加载列表" className="table-frame" role="status">
+      <table className="list-table">
         <tbody>
           {Array.from({ length: rows }).map((_, row) => (
             <tr key={row}>
               {Array.from({ length: columns }).map((__, column) => (
                 <td key={column}>
-                  <Skeleton className={column === 0 ? "h-4 w-32" : column === columns - 1 ? "h-8 w-24" : "h-4 w-full"} />
+                  <Skeleton className={column === 0 ? "h-4 w-40" : column === columns - 1 ? "h-7 w-20" : "h-4 w-full"} />
                 </td>
               ))}
             </tr>

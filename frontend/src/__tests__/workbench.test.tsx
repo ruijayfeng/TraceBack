@@ -242,7 +242,7 @@ describe('follow-up polish (F12–F18)', () => {
     const {container}=render(<IncidentList analysisId={f.analysisId} filters={filters} revision={0} onFilters={vi.fn()} onOpen={vi.fn()}/>);
     await screen.findByText('查看详情',{exact:false});
     expect(container.querySelector('.table-density-comfortable')).not.toBeNull();
-    fireEvent.change(screen.getByLabelText('表格密度'),{target:{value:'compact'}});
+    fireEvent.click(screen.getByRole('button',{name:'紧凑'}));
     expect(container.querySelector('.table-density-compact')).not.toBeNull();
     expect(window.localStorage.getItem('traceback.tableDensity')).toBe('compact');
   });

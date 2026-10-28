@@ -24,16 +24,19 @@ TraceBack 的 UI 优化使用/复制以下第三方开源项目。分发本项�
 |---|---|---|
 | Impeccable（skill/CLI） | Apache-2.0 | 仅本地开发使用，未提交到仓库；按 Impeccable 的 LICENSE/NOTICE 使用 |
 | emilkowalski/skills（13 个技能） | MIT | 仅本地开发使用，未提交到仓库；来源 https://github.com/emilkowalski/skills |
+| taste-skill v2 / design-taste-frontend | MIT | 仅本地开发使用，未提交到仓库（`.agents/` 已忽略）；来源 https://github.com/Leonxlnx/taste-skill |
 
 ## 已复制/改编到源码的第三方设计系统组件
 
 ### coss.com/ui（Cal.com Design System）
 - 来源：https://github.com/cosscom/ui；通过 registry 路径（`https://coss.com/ui/r/<name>.json`）与 `npx shadcn@4.23.0 add` 复制。
-- 文件（`frontend/src/components/ui/`）：`button.tsx`、`badge.tsx`、`spinner.tsx`、`table.tsx`、`sheet.tsx`、`dialog.tsx`。
+- 文件（`frontend/src/components/ui/`）：`button.tsx`、`card.tsx`、`table.tsx`、`sheet.tsx`、`dialog.tsx`、`spinner.tsx`、`kbd.tsx`。其余 registry 组件仅评估过、未纳入源码（Tailwind 会扫描 `src/`，未使用的组件文件会白白增加 CSS 载荷）。
 - 每文件头保留来源、版权与 TraceBack 修改说明；`coss-ui.LICENSE` 为 MIT 文本。
 - 修改：
-  - `table.tsx`：TableCell 不再强制 `nowrap/leading-none`，允许证据列换行；容器可渲染为项目 `.table-scroll`。
-  - `sheet.tsx` / `dialog.tsx`：`@base-ui/react@1.9.0`（当前最新发布版）没有 `Dialog.Viewport`，因此把 viewport 定位放到 Popup 上，并用 popup 自身 overflow 替代 `@coss/scroll-area` 依赖；焦点陷阱、Esc、scroll lock、焦点恢复仍是 Base UI Dialog 行为。
+  - `table.tsx`：TableCell 不再强制 `nowrap/leading-none`；去掉自带 hover/斑马/表头尺寸 utility，交给 TraceBack 设计系统；容器可渲染为项目 `.table-frame`。
+  - `sheet.tsx` / `dialog.tsx`：`@base-ui/react@1.9.0`（当前最新发布版）没有 `Dialog.Viewport`，因此把 viewport 定位放到 Popup 上，并用 popup 自身 overflow 替代 `@coss/scroll-area` 依赖；焦点陷阱、Esc、scroll lock、焦点恢复仍是 Base UI Dialog 行为。v2 去掉 backdrop blur（设计方向禁止玻璃模糊）。
+  - `card.tsx`：改为 10px 圆角、1px hairline、无阴影（framed-sheet 方向）。
+  - `button.tsx`：去掉 resting shadow 与品牌色填充，主按钮使用 near-black token。
 - 许可证口径：`apps/ui/registry` 在仓库中声明 MIT；`packages/ui` 为 AGPL。本项目**只使用 registry 路径**，未复制 `packages/ui` 源码；公开发布前仍需向 coss.com 书面确认 registry 的 MIT 适用范围。
 
 ### rare-ui

@@ -1,4 +1,5 @@
 import {originLabel, severityLabel, statusLabel, entityLabel} from '../../lib/displayLabels';
+import {shortId} from '../../lib/ids';
 import {FileJson, FileText, RefreshCw, Sparkles, StopCircle} from 'lucide-react';
 import {lazy, Suspense, useEffect, useRef, useState} from 'react';
 import {api} from '../../api/client';
@@ -6,7 +7,8 @@ import type {AIState, Chain, EvidenceSelection, Explanation, Finding, Report, Te
 import {AIStatus, JsonView, Notice, Section, StableId} from '../common';
 // rare-ui ai-status pulls in Motion; load it only while a generation is in flight.
 const AiStatus = lazy(() => import('../ui/ai-status'));
-import {Dialog, DialogClose, DialogDescription, DialogFooter, DialogHeader, DialogPopup, DialogTitle} from '../ui/dialog';
+import {Button} from '../ui/button';
+import {Dialog, DialogDescription, DialogFooter, DialogHeader, DialogPopup, DialogTitle} from '../ui/dialog';
 import {EmptyState} from '../ui/empty-state';
 import {ErrorState} from '../ui/error-state';
 import {TextSkeleton} from '../ui/skeleton';
@@ -23,15 +25,15 @@ export function verifiedReport(result: Explanation | null, analysisId: string, i
 function ClaimText({text}: {text: string}) {
   const [expanded, setExpanded] = useState(false);
   const long = text.length > 280;
-  return <><p className={long && !expanded ? 'claim-text clamped' : 'claim-text'}>{text}</p>{long && <button className="text-button claim-toggle" onClick={() => setExpanded(value => !value)} type="button">{expanded ? '收起全文' : `展开全文（${text.length.toLocaleString()} 字符）`}</button>}</>;
+  return <><p className={long && !expanded ? 'claim-text clamped' : 'claim-text'}>{text}</p>{long && <button className="text-action claim-toggle" onClick={() => setExpanded(value => !value)} type="button">{expanded ? '收起全文' : `展开全文（${text.length.toLocaleString()} 字符）`}</button>}</>;
 }
 
 function EvidenceLinks({finding, onEvidence, onSelect}: {finding: Finding; onEvidence: (e: EvidenceSelection) => void; onSelect: (kind: 'node' | 'edge', id: string) => void}) {
   const references = finding.evidence_refs.length + finding.alert_refs.length;
   return <div className="claim-links">
-    <button disabled={references === 0} onClick={() => onEvidence({title: '已验证陈述证据', objectId: finding.claim_id, alertIds: finding.alert_refs, pointers: finding.evidence_refs})} title={references === 0 ? '该陈述没有可定位的证据引用' : '打开绑定证据'} type="button">查看陈述证据 · {references} 引用</button>
-    {finding.node_refs.map(n => <button key={n} onClick={() => onSelect('node', n)} type="button">节点 <StableId copy={false} label="节点 ID" value={n}/></button>)}
-    {finding.edge_refs.map(e => <button key={e} onClick={() => onSelect('edge', e)} type="button">边 <StableId copy={false} label="边 ID" value={e}/></button>)}
+    <Button disabled={references === 0} onClick={() => onEvidence({title: '已验证陈述证据', objectId: finding.claim_id, alertIds: finding.alert_refs, pointers: finding.evidence_refs})} size="xs" title={references === 0 ? '该陈述没有可定位的证据引用' : '打开绑定证据'} type="button" variant="link">查看陈述证据 · {references} 引用</Button>
+    {finding.node_refs.map(n => <Button key={n} onClick={() => onSelect('node', n)} size="xs" title={n} type="button" variant="link">节点 <span className="mono">{shortId(n)}</span></Button>)}
+    {finding.edge_refs.map(e => <Button key={e} onClick={() => onSelect('edge', e)} size="xs" title={e} type="button" variant="link">边 <span className="mono">{shortId(e)}</span></Button>)}
   </div>;
 }
 
@@ -43,19 +45,19 @@ export function ReportContent({report, onEvidence, onSelect}: {report: Report; o
   const recommendationClaims = [...claims.values()].filter(c => c.kind === 'recommendation');
   const actions = report.recommended_actions.filter(a => recommendationClaims.some(c => c.text.includes(a.recommendation)));
   const reportSections = [['report-summary','摘要'],['report-findings','发现'],['report-attack-path','攻击过程'],['report-attack','ATT&CK'],['report-entities','实体'],['report-risk','风险'],['report-actions','建议']] as const;
-  return <><nav aria-label="报告导航" className="report-nav">{reportSections.map(([id,label]) => <a className="report-nav-link" href={'#'+id} key={id}>{label}</a>)}</nav>
+  return <div className="report-section"><nav aria-label="报告导航" className="report-nav">{reportSections.map(([id,label]) => <a className="report-nav-link" href={'#'+id} key={id}>{label}</a>)}</nav>
     <Section id="report-summary" title="安全事件摘要" hint={report.result_origin === 'deterministic' ? '确定性事实模板 · AI 未生成' : '已通过证据锚定校验'}>{findings(report.summary)}</Section>
     <Section id="report-findings" title="关键发现">{findings(report.observed_facts)}</Section>
     <Section id="report-attack-path" title="攻击过程">{report.has_directed_path ? (attackPath.length ? attackPath : <Notice>当前没有已验证的多阶段有向路径。</Notice>) : <Notice>当前没有已验证的多阶段有向路径。</Notice>}</Section>
-    <Section id="report-attack" title="ATT&CK · 已验证映射" hint="语义解释 · 不补充攻击步骤">{techniques.length ? techniques.map(t => <TechniqueCard key={t.claim_id} technique={t} text={claims.get(t.claim_id)!.text} onEvidence={onEvidence} onSelect={onSelect}/>) : <><Notice>没有通过本地目录校验的 ATT&CK 技术。</Notice>{report.attack_techniques.length > 0 && <p className="muted">另有 {report.attack_techniques.length} 条映射未通过本地目录校验，已隔离在诊断信息中。</p>}</>}</Section>
-    <Section id="report-entities" title="关键实体">{report.key_entities.length ? report.key_entities.map(e => <div className="entity-row" key={e.entity_id}><b>{entityLabel(e.type)}</b><span>{e.value}</span><button onClick={() => onEvidence({title: '实体证据', objectId: e.entity_id, alertIds: [...new Set(e.evidence_refs.map(p => p.alert_id))].sort(), pointers: e.evidence_refs})} type="button">证据</button></div>) : <Notice>报告中没有关键实体。</Notice>}</Section>
-    <Section id="report-risk" title="风险与不确定性"><p>{report.risk.statement}</p><p className="muted">设备观测等级：{severityLabel(report.risk.observed_severity)}</p><ul>{report.limitations.map(u => <li key={u.code}>{u.statement}</li>)}</ul></Section>
-    <Section id="report-actions" title="建议调查" hint="建议动作 · 尚未执行">{actions.length ? <ol className="actions">{actions.map(a => <li key={a.action}><b>{a.recommendation}</b><p className="muted">{a.reason}</p>{a.related_object_refs.length > 0 && <small>{a.related_object_refs.map(r => <StableId copy={false} key={r} label="关联对象 ID" value={r}/>)}</small>}</li>)}</ol> : <Notice>没有已验证的调查建议。</Notice>}</Section>
-  </>;
+    <Section id="report-attack" title="ATT&CK · 已验证映射" hint="语义解释 · 不补充攻击步骤">{techniques.length ? techniques.map(t => <TechniqueRow key={t.claim_id} technique={t} text={claims.get(t.claim_id)!.text} onEvidence={onEvidence} onSelect={onSelect}/>) : <><Notice>没有通过本地目录校验的 ATT&CK 技术。</Notice>{report.attack_techniques.length > 0 && <p className="muted-text" style={{fontSize: 12}}>另有 {report.attack_techniques.length} 条映射未通过本地目录校验，已隔离在诊断信息中。</p>}</>}</Section>
+    <Section id="report-entities" title="关键实体">{report.key_entities.length ? report.key_entities.map(e => <div className="field-row" key={e.entity_id}><b>{entityLabel(e.type)}</b><span>{e.value}</span><button className="text-action" onClick={() => onEvidence({title: '实体证据', objectId: e.entity_id, alertIds: [...new Set(e.evidence_refs.map(p => p.alert_id))].sort(), pointers: e.evidence_refs})} type="button">证据</button></div>) : <Notice>报告中没有关键实体。</Notice>}</Section>
+    <Section id="report-risk" title="风险与不确定性"><p className="claim-text">{report.risk.statement}</p><p className="muted-text" style={{fontSize: 12}}>设备观测等级：{severityLabel(report.risk.observed_severity)}</p><ul className="reason-list">{report.limitations.map(u => <li key={u.code}>{u.statement}</li>)}</ul></Section>
+    <Section id="report-actions" title="建议调查" hint="建议动作 · 尚未执行">{actions.length ? <ol className="actions">{actions.map(a => <li key={a.action}><b>{a.recommendation}</b><p>{a.reason}</p>{a.related_object_refs.length > 0 && <small>{a.related_object_refs.map(r => <StableId copy={false} key={r} label="关联对象 ID" value={r}/>)}</small>}</li>)}</ol> : <Notice>没有已验证的调查建议。</Notice>}</Section>
+  </div>;
 }
 
-function TechniqueCard({technique: t, text, onEvidence, onSelect}: {technique: Technique; text: string; onEvidence: (e: EvidenceSelection) => void; onSelect: (kind: 'node' | 'edge', id: string) => void}) {
-  return <article className="technique"><span className="badge verified">目录已验证</span><h3>{t.technique_id} · {t.technique_name}</h3><p>{t.tactic} · 目录版本 {t.catalog_version}</p><p>{t.reason}</p><details><summary>支撑陈述</summary><p>{text}</p><StableId label="陈述 ID" value={t.claim_id}/></details><EvidenceLinks finding={{...t, statement: text}} onEvidence={onEvidence} onSelect={onSelect}/></article>;
+function TechniqueRow({technique: t, text, onEvidence, onSelect}: {technique: Technique; text: string; onEvidence: (e: EvidenceSelection) => void; onSelect: (kind: 'node' | 'edge', id: string) => void}) {
+  return <article className="technique"><span className="badge verified">目录已验证</span><h3>{t.technique_id} · {t.technique_name}</h3><p>{t.tactic} · 目录版本 {t.catalog_version}</p><p>{t.reason}</p><details className="subtle-details"><summary>支撑陈述</summary><p>{text}</p><StableId label="陈述 ID" value={t.claim_id}/></details><EvidenceLinks finding={{...t, statement: text}} onEvidence={onEvidence} onSelect={onSelect}/></article>;
 }
 
 const GENERATION_TIMEOUT_MS = 45_000;
@@ -168,30 +170,32 @@ export function AIReport({analysisId, incidentId, chain, onEvidence, onSelect, o
     } catch {notify.error('导出失败，请重试');}
   }
   const generating = state === 'generating';
-  return <div className="ai-area" id="ai-report"><Section title="AI 研判报告" hint="解释已有结果">
-    <div className="ai-toolbar"><AIStatus state={state}/>{saved && <span className="badge">已保存报告</span>}
-      <button className="primary" disabled={generating || loading} onClick={requestGenerate} type="button"><TraceIcon icon={generating ? RefreshCw : Sparkles} size={14}/>{generating ? '正在生成…' : result ? '重新请求 AI 研判' : '请求 AI 研判'}</button>
-      {generating && <button onClick={cancelGenerate} type="button"><TraceIcon icon={StopCircle} size={14}/>取消生成</button>}
-      {report && <><button onClick={() => download('json')} type="button"><TraceIcon icon={FileJson} size={14}/>导出 JSON</button><button onClick={() => download('md')} type="button"><TraceIcon icon={FileText} size={14}/>导出 Markdown</button></>}
-    </div>
-    {generating && <div className="ai-generating-row"><Suspense fallback={<span className="muted">正在生成…</span>}><AiStatus className="ai-status-inline" detail={`${GENERATION_TIMEOUT_MS / 1000}s 超时`} elapsed={elapsed} label="正在生成…" state="thinking" /></Suspense><span className="muted">已等待 {elapsed} 秒；可取消，超时会保留上次报告。</span></div>}
-    {loading && <TextSkeleton lines={3}/>}
-    {loading && <Notice kind="loading">正在读取已保存的正式报告…</Notice>}
-    {error && <ErrorState error={error} onRetry={state === 'failed' ? requestGenerate : retrySaved} scope="AI 研判报告"/>}
-    {cancelled && <Notice kind="info">已取消生成。上次已验证的报告和证据仍保留。</Notice>}
-    {!loading && !result && !error && <EmptyState description="节点、告警与证据仍可独立查看；生成后会保存正式报告。" title="尚未生成研判。节点、告警与证据可独立查看。"/>}
-    {result && <p className="muted">生成状态：{statusLabel(result.generation_status)} · 来源：{originLabel(result.result_origin)}{result.provider_metadata && ` · ${result.provider_metadata.provider} / ${result.provider_metadata.model}`}</p>}
-    {result?.degraded && <Notice kind="info">AI 不可用或部分生成内容被拒绝。下方只展示已验证内容；确定性事实模板不代表模型生成成功。</Notice>}
-    {result && !report && <Notice kind="error">报告未通过发布或快照一致性检查，不能作为正式结论展示。</Notice>}
-    <Dialog onOpenChange={setConfirmOpen} open={confirmOpen}>
-      <DialogPopup aria-label="重新生成 AI 研判">
-        <DialogHeader><DialogTitle>重新生成会覆盖已保存报告</DialogTitle><DialogDescription>将再次请求 AI 研判并覆盖当前已保存的正式报告。设备告警、攻击链与证据不会被修改。</DialogDescription></DialogHeader>
-        <DialogFooter><DialogClose type="button">取消</DialogClose><button className="primary" onClick={() => {setConfirmOpen(false);void generate();}} type="button">确认重新生成</button></DialogFooter>
-      </DialogPopup>
-    </Dialog>
-  </Section>
+  const toolbar = <>
+    <AIStatus state={state}/>{saved && <span className="badge">已保存报告</span>}
+    <Button disabled={generating || loading} onClick={requestGenerate} size="sm" type="button"><TraceIcon icon={generating ? RefreshCw : Sparkles} size={14}/>{generating ? '正在生成…' : result ? '重新请求 AI 研判' : '请求 AI 研判'}</Button>
+    {generating && <Button onClick={cancelGenerate} size="sm" type="button" variant="outline"><TraceIcon icon={StopCircle} size={14}/>取消生成</Button>}
+    {report && <><Button onClick={() => download('json')} size="sm" type="button" variant="outline"><TraceIcon icon={FileJson} size={14}/>导出 JSON</Button><Button onClick={() => download('md')} size="sm" type="button" variant="outline"><TraceIcon icon={FileText} size={14}/>导出 Markdown</Button></>}
+  </>;
+  return <div className="ai-area" id="ai-report">
+    <Section actions={toolbar} hint="解释已有结果 · 证据锚定校验" title="AI 研判报告">
+      {generating && <div className="ai-generating-row"><Suspense fallback={<span className="muted">正在生成…</span>}><AiStatus className="ai-status-inline" detail={`${GENERATION_TIMEOUT_MS / 1000}s 超时`} elapsed={elapsed} label="正在生成…" state="thinking" /></Suspense><span className="muted">已等待 {elapsed} 秒；可取消，超时会保留上次报告。</span></div>}
+      {loading && <TextSkeleton lines={3}/>}
+      {loading && <Notice kind="loading">正在读取已保存的正式报告…</Notice>}
+      {error && <ErrorState error={error} onRetry={state === 'failed' ? requestGenerate : retrySaved} scope="AI 研判报告"/>}
+      {cancelled && <Notice kind="info">已取消生成。上次已验证的报告和证据仍保留。</Notice>}
+      {!loading && !result && !error && <EmptyState description="节点、告警与证据仍可独立查看；生成后会保存正式报告。" title="尚未生成研判。节点、告警与证据可独立查看。"/>}
+      {result && <p className="muted-text" style={{fontSize: 11}}>生成状态：{statusLabel(result.generation_status)} · 来源：{originLabel(result.result_origin)}{result.provider_metadata && ` · ${result.provider_metadata.provider} / ${result.provider_metadata.model}`}</p>}
+      {result?.degraded && <Notice kind="info">AI 不可用或部分生成内容被拒绝。下方只展示已验证内容；确定性事实模板不代表模型生成成功。</Notice>}
+      {result && !report && <Notice kind="error">报告未通过发布或快照一致性检查，不能作为正式结论展示。</Notice>}
+    </Section>
     {report && <ReportContent report={report} onEvidence={onEvidence} onSelect={onSelect}/>}
     {result && <details className="diagnostics"><summary>诊断信息 · 被拒绝内容不属于正式结论</summary><p>已拒绝 ≠ 已验证。这里只显示验证错误码，不发布被拒绝的原始文本。</p><JsonView value={{rejected_claims: result.rejected_claims, rejected_mappings: result.rejected_mappings, validation_errors: result.validation_errors}}/></details>}
     {report && result?.report_markdown && <details className="raw-report"><summary>原始报告 / Markdown</summary><pre className="markdown-preview">{result.report_markdown}</pre></details>}
+    <Dialog onOpenChange={setConfirmOpen} open={confirmOpen}>
+      <DialogPopup aria-label="重新生成 AI 研判">
+        <DialogHeader><DialogTitle>重新生成会覆盖已保存报告</DialogTitle><DialogDescription>将再次请求 AI 研判并覆盖当前已保存的正式报告。设备告警、攻击链与证据不会被修改。</DialogDescription></DialogHeader>
+        <DialogFooter><Button onClick={() => setConfirmOpen(false)} type="button" variant="outline">取消</Button><Button onClick={() => {setConfirmOpen(false);void generate();}} type="button">确认重新生成</Button></DialogFooter>
+      </DialogPopup>
+    </Dialog>
   </div>;
 }

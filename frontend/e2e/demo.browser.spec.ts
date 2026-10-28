@@ -36,7 +36,7 @@ test('Synthetic Fixture / Functional Demonstration: exact direction, edge and AT
       const banner = document.createElement('aside');
       banner.textContent = 'Synthetic Fixture / Functional Demonstration — 非 AIT-ADS 真实攻击链';
       banner.setAttribute('data-testid', 'synthetic-banner');
-      banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;padding:10px;background:#fff3c4;color:#563700;text-align:center;font-weight:bold';
+      banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:20;padding:10px;background:#fff3c4;color:#563700;text-align:center;font-weight:bold';
       document.body.append(banner);
     });
   });

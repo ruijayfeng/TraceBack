@@ -4,6 +4,8 @@ import {useEffect, useId, useMemo, useRef, useState} from 'react';
 import type {Chain, ChainNode, Entity} from '../../types/domain';
 import {useMediaQuery} from '../../lib/useMediaQuery';
 import {Notice, shortId} from '../common';
+import {readableEntityValue} from '../../lib/format';
+import {Button} from '../ui/button';
 import {TraceIcon} from '../ui/trace-icon';
 
 export type Selection = {kind: 'node' | 'edge'; id: string} | null;
@@ -24,11 +26,16 @@ export function ChainGraph({chain, entities, selection, onSelect}: {chain: Chain
   const suppressClick = useRef(false);
   // Coordinates are display only. Existing source/target IDs define every arrow.
   const nodes = useMemo(() => [...chain.nodes].sort((a, b) => a.start_time.localeCompare(b.start_time) || a.node_id.localeCompare(b.node_id)), [chain.nodes]);
-  const positions = useMemo(() => new Map(nodes.map((node, index) => [node.node_id, narrow ? {x: 24, y: 42 + index * 150} : {x: 24 + (index % 3) * 300, y: 42 + Math.floor(index / 3) * 178}])), [nodes, narrow]);
-  const width = narrow ? 312 : Math.max(310, Math.min(nodes.length, 3) * 300 + 24);
+  const positions = useMemo(() => new Map(nodes.map((node, index) => [node.node_id, narrow ? {x: 24, y: 42 + index * 150} : {x: 24 + (index % 3) * 340, y: 42 + Math.floor(index / 3) * 178}])), [nodes, narrow]);
+  const width = narrow ? 312 : Math.max(310, Math.min(nodes.length, 3) * 340 + 24);
   const height = narrow ? Math.max(210, nodes.length * 150 + 50) : Math.max(210, Math.ceil(nodes.length / 3) * 178 + 50);
   const showEdgeLabels = chain.edges.length <= 12 || Boolean(selection?.kind === 'edge');
-  const label = (node: ChainNode) => node.entity_ids.map(i => entities.find(e => e.entity_id === i)?.display_value ?? entities.find(e => e.entity_id === i)?.value).filter(Boolean).slice(0, 2).join(' · ');
+  const label = (node: ChainNode) => {
+    const owned = node.entity_ids.map(id => entities.find(entity => entity.entity_id === id)).filter((entity): entity is NonNullable<typeof entity> => Boolean(entity));
+    const preferred = owned.find(entity => entity.type === 'PROCESS') ?? owned.find(entity => entity.type === 'HOST') ?? owned[0];
+    const value = preferred ? readableEntityValue(preferred.display_value ?? preferred.value) : '';
+    return value.length > 20 ? value.slice(0, 19) + '…' : value;
+  };
 
   function select(value: Selection) {if (suppressClick.current) {suppressClick.current = false;return;}onSelect(value);}
   function keyboard(event: React.KeyboardEvent, value: Selection, list: {kind: 'node' | 'edge'; id: string}[]) {
@@ -64,10 +71,11 @@ export function ChainGraph({chain, entities, selection, onSelect}: {chain: Chain
 
   return <div>
     <div className="graph-toolbar">
-      <span className="muted">{nodes.length} 节点 · {chain.edges.length} 有向边 · 置信分为算法分{narrow ? ' · 上下滑动查看' : ''}</span>
-      <button aria-label="适应攻击链视图" onClick={fitView} type="button"><TraceIcon icon={Maximize2} size={13}/></button><button aria-label="缩小攻击链" onClick={() => setZoom(z => Math.max(MIN_ZOOM, z - 0.25))} type="button"><TraceIcon icon={Minus} size={14}/></button>
-      <button onClick={resetView} type="button"><TraceIcon icon={RotateCcw} size={13}/><span className="sr-only">重置攻击链缩放</span>{Math.round(zoom * 100)}%</button>
-      <button aria-label="放大攻击链" onClick={() => setZoom(z => Math.min(MAX_ZOOM, z + 0.25))} type="button"><TraceIcon icon={Plus} size={14}/></button>
+      <span className="graph-note">{nodes.length} 节点 · {chain.edges.length} 有向边 · 置信分为算法分{narrow ? ' · 上下滑动查看' : ''}</span>
+      <Button aria-label="适应攻击链视图" onClick={fitView} size="icon-xs" title="适应视图" type="button" variant="outline"><TraceIcon icon={Maximize2} size={13}/></Button>
+      <Button aria-label="缩小攻击链" onClick={() => setZoom(z => Math.max(MIN_ZOOM, z - 0.25))} size="icon-xs" type="button" variant="outline"><TraceIcon icon={Minus} size={14}/></Button>
+      <Button onClick={resetView} size="xs" type="button" variant="ghost"><TraceIcon icon={RotateCcw} size={13}/><span className="sr-only">重置攻击链缩放</span><span className="num">{Math.round(zoom * 100)}%</span></Button>
+      <Button aria-label="放大攻击链" onClick={() => setZoom(z => Math.min(MAX_ZOOM, z + 0.25))} size="icon-xs" type="button" variant="outline"><TraceIcon icon={Plus} size={14}/></Button>
     </div>
     {!nodes.length ? <Notice>当前快照没有可展示节点。</Notice> : <div className="graph-scroll" ref={scrollRef}>
       <svg aria-label="生产攻击链图" className="chain-graph" height={height} role="group" style={{cursor: drag.current ? 'grabbing' : 'grab'}} viewBox={`0 0 ${width} ${height}`} width={width}
@@ -77,7 +85,7 @@ export function ChainGraph({chain, entities, selection, onSelect}: {chain: Chain
         onPointerCancel={() => {drag.current = null;}}
       >
         <g transform={`translate(${pan.x} ${pan.y}) scale(${zoom})`}>
-          <defs><marker id={marker} markerHeight="9" markerWidth="9" orient="auto-start-reverse" refX="9" refY="5" viewBox="0 0 10 10"><path d="M 0 0 L 10 5 L 0 10 z" fill="#296b8f"/></marker></defs>
+          <defs><marker id={marker} markerHeight="9" markerWidth="9" orient="auto-start-reverse" refX="9" refY="5" viewBox="0 0 10 10"><path d="M 0 0 L 10 5 L 0 10 z" fill="#16718f"/></marker></defs>
           {([...chain.edges].sort((a, b) => a.edge_id.localeCompare(b.edge_id))).map(edge => {
             const s = positions.get(edge.source_node_id), t = positions.get(edge.target_node_id);
             if (!s || !t) return null;
@@ -97,10 +105,10 @@ export function ChainGraph({chain, entities, selection, onSelect}: {chain: Chain
             const position = positions.get(node.node_id)!;
             const selected = selection?.kind === 'node' && selection.id === node.node_id;
             const value = {kind: 'node' as const, id: node.node_id};
-            return <g aria-label={`选择节点 ${categoryLabel(node.category)}${(label(node) || '未抽取关键实体').slice(0, 32)}${node.start_time.slice(11, 23)} UTC${node.alert_ids.length} 告警 · 置信度 ${node.confidence.toFixed(2)} ${shortId(node.node_id)}`} aria-pressed={selected} className={selected ? 'graph-node selected' : 'graph-node'} key={node.node_id} onClick={() => select(value)} onKeyDown={event => keyboard(event, value, nodes.map(item => ({kind: 'node' as const, id: item.node_id})))} role="button" tabIndex={0} transform={`translate(${position.x},${position.y})`}>
+            return <g aria-label={`选择节点 ${categoryLabel(node.category)}${(label(node) || '未抽取关键实体').slice(0, 24)}${node.start_time.slice(11, 23)} UTC${node.alert_ids.length} 告警 · 置信度 ${node.confidence.toFixed(2)} ${shortId(node.node_id)}`} aria-pressed={selected} className={selected ? 'graph-node selected' : 'graph-node'} key={node.node_id} onClick={() => select(value)} onKeyDown={event => keyboard(event, value, nodes.map(item => ({kind: 'node' as const, id: item.node_id})))} role="button" tabIndex={0} transform={`translate(${position.x},${position.y})`}>
               <rect height={NODE_HEIGHT} rx="10" width={NODE_WIDTH}/>
               <text aria-hidden="true" className="node-category" x="16" y="27">{categoryLabel(node.category)}</text>
-              <text aria-hidden="true" x="16" y="49">{(label(node) || '未抽取关键实体').slice(0, 32)}</text>
+              <text aria-hidden="true" x="16" y="49">{(label(node) || '未抽取关键实体').slice(0, 24)}</text>
               <text aria-hidden="true" x="16" y="72">{node.start_time.slice(11, 23)} UTC</text>
               <text aria-hidden="true" x="16" y="95">{node.alert_ids.length} 告警 · 置信度 {node.confidence.toFixed(2)}</text>
               <rect className="node-confidence-track" height="4" rx="2" width={NODE_WIDTH - 32} x="16" y="104"/>

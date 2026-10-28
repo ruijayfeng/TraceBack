@@ -1,19 +1,19 @@
 # TraceBack UI 优化 · 最终交付报告
 
-日期：2026-10-28 · 分支：`TraceBack/ui/optimization`（相对 `f2e640b`，**未 commit**）· 环境：macOS / Chrome / Node 26 / Python 3.11
+日期：2026-10-28 · 分支：`pr/ui-optimization`（相对 `f2e640b`，已 commit）· 环境：macOS / Chrome / Node 26 / Python 3.11
 
 ## 一、结果总览
 
 | 门禁 | 命令 | 结果 |
 |---|---|---|
 | TypeScript | `npm run typecheck` | ✅ 0 error |
-| 单元测试 | `npm run test:run` | ✅ 8 files / **60 tests** |
-| 生产构建 | `npm run build` | ✅ built，JS gzip **138.62KB** / CSS gzip **16.02KB** |
+| 单元测试 | `npm run test:run` | ✅ 9 files / **61 tests** |
+| 生产构建 | `npm run build` | ✅ built，JS gzip **141.89KB** / CSS gzip **16.24KB** |
 | Bundle 预算 | `npm run check:bundle` | ✅ PASS（JS ≤160KB、CSS ≤20KB） |
-| 自包含 E2E | `npm run test:e2e` | ✅ **25 passed / 3 skipped**（含 visual/aria/forced-colors/zoom；@real 无数据集时 skip） |
+| 自包含 E2E | `npm run test:e2e` | ✅ **29 passed / 3 skipped**（含 axe/visual/aria/forced-colors/zoom；@real 无数据集时 skip） |
 | 视觉基线 | `npm run test:e2e:visual` | ✅ 4 宽度 × 4 表面 = **16 张**，基线已用最终代码刷新 |
 | Detector | `npm run detect:ui:check` | ✅ 当前 **0 findings**，PASS / no drift |
-| 可访问性 | axe-core（1440/390，工作台/详情/欢迎/抽屉） | ✅ **0 violations** |
+| 可访问性 | `e2e/a11y-axe.spec.ts` axe-core（工作台/详情/欢迎/抽屉） | ✅ **0 violations** |
 | 后端（改动相关） | `pytest tests/test_workbench.py` / `tests/test_api.py` | ✅ **22 + 61 passed**（全量套件受仓库缺失 data/outputs 工件限制） |
 | 响应式 | 1440/1024/900/768/390 工作台/详情/抽屉 | ✅ 页面级横向溢出 = 0 |
 
@@ -116,3 +116,30 @@ AI 入口/锚点；重新生成二次确认；生成进度/取消/45s 超时/失
 - **F29 文档**：README/DESIGN/UI 报告/可访问性清单收口。
 
 新增/更新命令：`PYTHONPATH=backend python scripts/export_openapi.py --check`、`bash scripts/run-backend-tests.sh backend/tests/test_workbench.py`、`npm run test:e2e:webkit`（环境就绪后）。
+
+
+## 三、v2「framed sheet」组件重做（追加，2026-10-28 晚）
+
+在 v1 的交互/可访问性基础上，按用户要求**直接替换遗留页面组件**，而不是继续给旧 CSS 打补丁。方向由 taste-skill v2 的 app 运行给出（`framed-sheet`，kind=support，seed 1901974840），并用 Impeccable 的 Operate 模式与 craft floor 约束。
+
+### 变更
+- **外壳**：深海军蓝侧栏 + 青色 active 药丸整体删除。改为 pale blue-grey L 形框 + 白色 paper（右/下内缩 8px、16px 圆角、1px 边、无阴影）；active nav 用中性灰 pill；产品名进顶栏，`分析范围/调查流程/离线声明` 重新分组。
+- **组件**：安装 coss.com/ui registry 组件并按需裁剪；实际进入源码的是 `Button/Card/Table/Sheet/Dialog/Spinner/Kbd`（其余评估后删除，避免 Tailwind 扫描未使用文件使 CSS 膨胀 4KB）。新增 `PageHead/Section/Pill/Notice/EmptyState/Pager` 等本地 primitives；表单控件保留原生语义，只借用 token 外观。
+- **工作台**：8 张等权 KPI 卡 → 一条 8 项追溯带（前 4 个 24px 流水线数字、后 4 个 17px 证据计数）；去重诊断 + 分布合一排；评分/配置折叠为一行；首屏提前约 330px，1440×900 可见表头 + 2 行事件。
+- **详情**：eyebrow 删除；h1=summary；状态 pill + ID 行；sticky underline tabs；概况 = 左 facts + 关键实体 / 右观测字段行；攻击链改浅点阵画布、process-first 可读标签、节点间距 76px、居中；证据/时间线/AI 全部去卡片化。
+- **证据抽屉**：header 层级重排（关闭按钮是第一个可聚焦）、listbox 选中态改中性 active、相关字段显示投影值 + 原始 pointer/transform、去 backdrop blur。
+- **AI**：报告导航 underline anchors；claim 行 = 状态 pill + 13/1.7 文本 + 文字证据动作（每行卡片删除）；长 IDs 截短防止移动端溢出。
+- **移动端**：诊断/筛选折叠进 disclosure；页面 meta 在列表页隐藏；密度控件隐藏；≤640 表格切换为两行列表（`useMediaQuery` 单渲染，不再 CSS 双渲染）；390 横向溢出 0。
+- **无障碍新增**：`e2e/a11y-axe.spec.ts` 四个表面 axe（WCAG 2.0/2.1 A+AA + best-practice）0 violations；修复抽屉选中行 4.02:1 对比度与 welcome 重复 landmark。
+
+### 验收
+- `npm run verify`：PASS（typecheck / 61 unit / build / bundle JS 141.89KB · CSS 16.24KB）。
+- `npm run test:e2e`：29 passed / 3 skipped（含 axe、visual 16 张基线、aria、forced-colors、zoom）。
+- Detector：0 findings / no drift。
+- taste-skill inspector（production preview 4175）：**0 FAIL / 1 WARN**；唯一 WARN 为「60% 文本 <13px」，这是 SOC 高密度证据表的主动取舍（11–12px 用于标签/时间/实体子行），已在 DESIGN.md 记录。
+- 响应式：1440 / 1024 / 900 / 768 / 390 复跑工作台与详情，页面级横向溢出 0。
+
+### 已知未做
+- 真实 45k 数据集未接入（用户明确暂不提供）；大样本下的列宽/性能仍未验证。
+- 深色模式未做（`.dark` token 已删除；产品当前只声明 light）。
+- WebKit/Firefox 自动下载仍受阻，只保留脚本入口。

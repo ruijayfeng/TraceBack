@@ -1,43 +1,22 @@
 import {Component, useEffect, useRef, useState, type ReactNode} from 'react';
 import {api} from './api/client';
-import {CircleHelp, ClipboardPaste, GitBranch, LayoutDashboard, Menu, Waypoints, X} from 'lucide-react';
+import {CircleHelp, ClipboardPaste, GitBranch, LayoutDashboard, Menu, Search, Waypoints, X} from 'lucide-react';
 import Dashboard from './pages/Dashboard';
 import IncidentList from './pages/IncidentList';
 import IncidentDetail from './pages/IncidentDetail';
+import Welcome from './pages/Welcome';
 import {EvidencePanel} from './components/evidence/EvidencePanel';
 import {Notice} from './components/common';
-import {Dialog, DialogClose, DialogDescription, DialogFooter, DialogHeader, DialogPopup, DialogTitle} from './components/ui/dialog';
+import {Button} from './components/ui/button';
+import {Dialog, DialogDescription, DialogFooter, DialogHeader, DialogPopup, DialogTitle} from './components/ui/dialog';
 import {CopyId} from './components/ui/copy-id';
+import {Kbd} from './components/ui/kbd';
 import {TraceIcon} from './components/ui/trace-icon';
 import {DEFAULT_FILTERS, readLocation, routeHref, routeTitle, type ListFilters, type Route} from './lib/route';
 import {loadRecentAnalyses, saveRecentAnalysis} from './lib/recent';
 import type {EvidenceSelection} from './types/domain';
 
 type Selection = {kind: 'node' | 'edge'; id: string} | null;
-
-interface RecentItem {analysisId: string; openedAt?: string; createdAt?: string; incidentCount?: number; status?: string}
-
-function Welcome({onOpen}: {onOpen: (analysisId: string) => void}) {
-  const [remote,setRemote] = useState<RecentItem[] | null>(null);
-  useEffect(() => {
-    const controller = new AbortController();
-    api.analyses(controller.signal).then(result => {if (!controller.signal.aborted) setRemote(result.items.map(item => ({analysisId:item.analysis_id,createdAt:item.created_at,incidentCount:item.incident_count,status:item.status})));})
-      .catch(() => {if (!controller.signal.aborted) setRemote([]);});
-    return () => controller.abort();
-  },[]);
-  const local = loadRecentAnalyses().map(item => ({analysisId:item.analysisId,openedAt:item.openedAt}));
-  const recent: RecentItem[] = remote?.length ? remote.slice(0, 5) : local;
-  return <div className="welcome">
-    <span className="eyebrow">告警 → 安全事件 → 攻击链 → 证据 → AI 研判</span>
-    <h1 data-page-title tabIndex={-1}>从碎片告警，回到可核验的调查。</h1>
-    <p>粘贴 分析 ID，或通过 演示程序打印的 Web 地址打开已有分析。</p>
-    <Notice kind="info">先构建前端，再运行 <code>python scripts/demo.py --analysis-id &lt;ID&gt;</code> 可直接打开真实快照。</Notice>
-    <section aria-label="最近打开的分析" className="recent-analyses">
-      <h2>最近打开的分析</h2>
-      {recent.length ? <ul>{recent.map(item => <li key={item.analysisId}><button onClick={() => onOpen(item.analysisId)} type="button"><CopyId copy={false} label="最近分析 ID" value={item.analysisId}/><span className="muted">{item.incidentCount !== undefined ? `${item.incidentCount.toLocaleString()} 事件` : ''}{item.openedAt ? ` · ${new Date(item.openedAt).toLocaleString('zh-CN')}` : ''}{item.createdAt ? ` · ${new Date(item.createdAt).toLocaleString('zh-CN')}` : ''}</span></button></li>)}</ul> : remote === null ? <p className="muted">正在读取分析列表…</p> : <p className="muted">本机还没有记录。打开一次分析后会出现在这里。</p>}
-    </section>
-  </div>;
-}
 
 function Workspace() {
   const [route,setRoute] = useState<Route>(() => readLocation());
@@ -157,40 +136,60 @@ function Workspace() {
   const activeList = !incidentId;
   return <div className="app">
     <a className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-card focus:px-4 focus:py-2 focus:text-sm focus:text-foreground focus:shadow-lg focus:ring-2 focus:ring-ring" href="#main-content">跳到主要内容</a>
-    <aside className="sidebar">
-      <a className="brand" href={analysisId ? homeHref : '/'} onClick={event => {if (!analysisId) return;event.preventDefault();navigate(analysisId,'',filters);}}>
-        <span className="brand-mark"><TraceIcon icon={Waypoints} size={19} /></span>
-        <span>TraceBack<small>智溯 / 安全研判工作台</small></span>
-      </a>
-      <button aria-expanded={menuOpen} aria-label="打开导航菜单" className="mobile-nav-button" onClick={openMenu} ref={menuButtonRef} type="button"><TraceIcon icon={Menu} size={20}/></button>
+
+    <header className="topbar">
+      <div className="topbar-brand">
+        <a className="brand" href={analysisId ? homeHref : '/'} onClick={event => {if (!analysisId) return;event.preventDefault();navigate(analysisId,'',filters);}}>
+          <span className="brand-mark"><TraceIcon icon={Waypoints} size={20} /></span>
+          <span className="brand-name">TraceBack<small>智溯</small></span>
+        </a>
+      </div>
+      <form className="topbar-search" role="search" onSubmit={event => {event.preventDefault();navigate(input.trim(),'',DEFAULT_FILTERS);}}>
+        <label className="sr-only" htmlFor="analysis-input">分析 ID</label>
+        <div className="tb-search-input">
+          <TraceIcon icon={Search} size={14}/>
+          <input aria-describedby="analysis-hint" id="analysis-input" value={input} placeholder="粘贴 ana_… 分析 ID 打开快照" onChange={event => setInput(event.target.value)} required pattern="ana_[a-f0-9]{64}" />
+          <span aria-hidden className="topbar-search-hint">/</span>
+        </div>
+        <span className="sr-only" id="analysis-hint">ana_ 前缀加 64 位十六进制</span>
+        <button aria-label="从剪贴板粘贴分析 ID" className="topbar-paste" disabled={!navigator.clipboard?.readText} onClick={pasteAnalysis} type="button"><TraceIcon icon={ClipboardPaste} size={14}/></button>
+        <Button size="sm" type="submit" variant={analysisId ? 'secondary' : 'default'}>打开分析</Button>
+      </form>
+      <div className="topbar-actions">
+        <button aria-label="查看快捷键" className="icon-button" onClick={() => setHelpOpen(true)} type="button"><TraceIcon icon={CircleHelp} size={17}/></button>
+        <button aria-expanded={menuOpen} aria-label="打开导航菜单" className="icon-button mobile-menu-button" onClick={openMenu} ref={menuButtonRef} type="button"><TraceIcon icon={Menu} size={18}/></button>
+      </div>
+    </header>
+
+    <aside aria-label="侧边导航" className="sidebar">
+      <div className="sidebar-scope">
+        <p className="sidebar-label">分析范围</p>
+        {analysisId
+          ? <><CopyId className="sidebar-scope-row" label="当前分析 ID" value={analysisId}/><p className="sidebar-scope-meta">冻结快照 · 离线可复核</p></>
+          : <><span className="sidebar-scope-empty">尚未打开分析</span><p className="sidebar-scope-meta">从顶栏粘贴分析 ID</p></>}
+      </div>
       <nav aria-label="调查流程">
-        <p className="sidebar-label">调查流程</p>
-        <button aria-current={activeList ? 'page' : undefined} className={'nav-item flex items-center gap-2 ' + (activeList ? 'active' : '')} onClick={() => analysisId && navigate(analysisId)} type="button"><TraceIcon icon={LayoutDashboard} size={15}/>分析工作台</button>
-        <button aria-current={incidentId ? 'page' : undefined} className={'nav-item flex items-center gap-2 ' + (incidentId ? 'active' : '')} onClick={() => analysisId && navigate(analysisId,'',{...filters,page:1,kind:'has_chain'})} title="查看有向攻击链事件" type="button"><TraceIcon icon={GitBranch} size={15}/>安全事件 / 证据研判</button>
+        <p className="nav-label">调查流程</p>
+        <button aria-current={activeList ? 'page' : undefined} className={'nav-item ' + (activeList ? 'active' : '')} onClick={() => analysisId && navigate(analysisId)} type="button"><TraceIcon icon={LayoutDashboard} size={15}/>分析工作台</button>
+        <button aria-current={incidentId ? 'page' : undefined} className={'nav-item ' + (incidentId ? 'active' : '')} onClick={() => analysisId && navigate(analysisId,'',{...filters,page:1,kind:'has_chain'})} title="查看有向攻击链事件" type="button"><TraceIcon icon={GitBranch} size={15}/>安全事件 / 证据研判</button>
       </nav>
-      <div className="principle"><b>算法关联与重构</b><span>告警事实与证据</span><span>AI 解释与研判</span></div>
-      <p className="sidebar-footer">离线快照 · 可核验证据<br/>原始告警不等于已确认攻击</p>
+      <div className="sidebar-spacer"/>
+      <div className="sidebar-foot">
+        <button className="sidebar-help" onClick={() => setHelpOpen(true)} type="button">键盘快捷键 <Kbd>?</Kbd></button>
+        <p className="sidebar-note">离线快照 · 可核验证据<br/>原始告警 ≠ 已确认攻击</p>
+      </div>
+
       <dialog aria-label="调查流程导航" className="mobile-nav" onCancel={closeMenu} onClose={() => setMenuOpen(false)} ref={menuRef}>
-        <div className="mobile-nav-heading"><strong>调查流程</strong><button aria-label="关闭导航菜单" onClick={closeMenu} type="button"><TraceIcon icon={X} size={18}/></button></div>
-        <button aria-current={activeList ? 'page' : undefined} className={'nav-item flex items-center gap-2 ' + (activeList ? 'active' : '')} onClick={() => {closeMenu();analysisId && navigate(analysisId);}} type="button"><TraceIcon icon={LayoutDashboard} size={16}/>分析工作台</button>
-        <button aria-current={incidentId ? 'page' : undefined} className={'nav-item flex items-center gap-2 ' + (incidentId ? 'active' : '')} onClick={() => {closeMenu();analysisId && navigate(analysisId,'',{...filters,page:1,kind:'has_chain'});}} type="button"><TraceIcon icon={GitBranch} size={16}/>安全事件 / 证据研判</button>
-        <button className="nav-item flex items-center gap-2" onClick={() => {closeMenu();setHelpOpen(true);}} type="button"><TraceIcon icon={CircleHelp} size={16}/>键盘快捷键</button>
-        <p className="sidebar-footer-mobile">离线快照 · 可核验证据<br/>原始告警不等于已确认攻击</p>
+        <div className="mobile-nav-head"><strong>调查流程</strong><button aria-label="关闭导航菜单" className="icon-button" onClick={closeMenu} type="button"><TraceIcon icon={X} size={18}/></button></div>
+        {analysisId && <CopyId className="mobile-nav-scope" label="当前分析 ID" value={analysisId}/>}
+        <button aria-current={activeList ? 'page' : undefined} className={'nav-item ' + (activeList ? 'active' : '')} onClick={() => {closeMenu();analysisId && navigate(analysisId);}} type="button"><TraceIcon icon={LayoutDashboard} size={16}/>分析工作台</button>
+        <button aria-current={incidentId ? 'page' : undefined} className={'nav-item ' + (incidentId ? 'active' : '')} onClick={() => {closeMenu();analysisId && navigate(analysisId,'',{...filters,page:1,kind:'has_chain'});}} type="button"><TraceIcon icon={GitBranch} size={16}/>安全事件 / 证据研判</button>
+        <button className="nav-item" onClick={() => {closeMenu();setHelpOpen(true);}} type="button"><TraceIcon icon={CircleHelp} size={16}/>键盘快捷键</button>
+        <p className="mobile-nav-foot">离线快照 · 可核验证据<br/>原始告警 ≠ 已确认攻击</p>
       </dialog>
     </aside>
-    <div className="workspace">
-      <header className="topbar">
-        <span className="topbar-context">安全运营</span>
-        <form onSubmit={event => {event.preventDefault();navigate(input.trim(),'',DEFAULT_FILTERS);}}>
-          <label className="sr-only" htmlFor="analysis-input">分析 ID</label>
-          <input aria-describedby="analysis-hint" id="analysis-input" value={input} placeholder="粘贴 ana_… 稳定 ID" onChange={event => setInput(event.target.value)} required pattern="ana_[a-f0-9]{64}" />
-          <span className="analysis-hint" id="analysis-hint">ana_ + 64 位十六进制</span>
-          <button aria-label="从剪贴板粘贴分析 ID" disabled={!navigator.clipboard?.readText} onClick={pasteAnalysis} type="button"><TraceIcon icon={ClipboardPaste} size={14}/><span className="paste-label">粘贴</span></button>
-          <button type="submit">打开分析</button>
-        </form>
-        <button aria-label="查看快捷键" className="topbar-help" onClick={() => setHelpOpen(true)} type="button"><TraceIcon icon={CircleHelp} size={17}/></button>
-        {analysisId && <span className="analysis-chip">当前分析 <CopyId label="当前分析 ID" value={analysisId}/></span>}
-      </header>
+
+    <div className="sheet">
       <main aria-label="主要内容" id="main-content" ref={mainRef} tabIndex={-1}>
         {!online && <div className="offline-banner" role="status">当前处于离线状态：已加载的数据仍可查看；重新请求或生成 AI 研判会失败。</div>}
         <PageBoundary key={analysisId + ':' + incidentId}>
@@ -210,19 +209,20 @@ function Workspace() {
         </PageBoundary>
       </main>
     </div>
+
     {evidence && <EvidencePanel analysisId={analysisId} key={analysisId+evidence.objectId+evidence.alertIds.join(',')} onClose={closeEvidence} selection={evidence}/>}
     <Dialog onOpenChange={setHelpOpen} open={helpOpen}>
-      <DialogPopup aria-label="键盘快捷键">
+      <DialogPopup aria-label="键盘快捷键" className="max-w-lg">
         <DialogHeader><DialogTitle>键盘快捷键</DialogTitle><DialogDescription>输入框内不触发；对话框内按 Esc 先关闭对话框。</DialogDescription></DialogHeader>
         <dl className="shortcut-list">
-          <div><dt><kbd>/</kbd></dt><dd>聚焦搜索框（列表页）或分析 ID 输入框</dd></div>
-          <div><dt><kbd>?</kbd></dt><dd>打开本快捷键帮助</dd></div>
-          <div><dt><kbd>Esc</kbd></dt><dd>关闭证据抽屉 / 清空搜索 / 退出输入框</dd></div>
-          <div><dt><kbd>j</kbd> <kbd>k</kbd></dt><dd>在事件列表行之间上下移动焦点</dd></div>
-          <div><dt><kbd>Enter</kbd> <kbd>Space</kbd></dt><dd>打开当前聚焦的事件行</dd></div>
-          <div><dt><kbd>方向键</kbd> <kbd>Home</kbd> <kbd>End</kbd></dt><dd>攻击链节点/边之间移动选择</dd></div>
+          <div><dt><Kbd>/</Kbd></dt><dd>聚焦搜索框（列表页）或分析 ID 输入框</dd></div>
+          <div><dt><Kbd>?</Kbd></dt><dd>打开本快捷键帮助</dd></div>
+          <div><dt><Kbd>Esc</Kbd></dt><dd>关闭证据抽屉 / 清空搜索 / 退出输入框</dd></div>
+          <div><dt><Kbd>j</Kbd> <Kbd>k</Kbd></dt><dd>在事件列表行之间上下移动焦点</dd></div>
+          <div><dt><Kbd>Enter</Kbd> <Kbd>Space</Kbd></dt><dd>打开当前聚焦的事件行</dd></div>
+          <div><dt><Kbd>←→↑↓</Kbd> <Kbd>Home</Kbd> <Kbd>End</Kbd></dt><dd>攻击链节点/边之间移动选择</dd></div>
         </dl>
-        <DialogFooter><DialogClose type="button">关闭</DialogClose></DialogFooter>
+        <DialogFooter><Button onClick={() => setHelpOpen(false)} type="button" variant="outline">关闭</Button></DialogFooter>
       </DialogPopup>
     </Dialog>
   </div>;
@@ -238,8 +238,8 @@ class PageBoundary extends Component<{children:ReactNode},{failed:boolean}> {
       <h1 tabIndex={-1}>页面暂时无法显示</h1>
       <Notice kind="error">当前视图渲染失败。请刷新后重新打开分析；设备分析结果仍保存在后端快照中。</Notice>
       <div className="flex flex-wrap gap-2">
-        <button onClick={() => {this.setState({failed:false});window.scrollTo(0,0);}} type="button">重试当前页面</button>
-        <button onClick={() => location.reload()} type="button">重新加载</button>
+        <Button onClick={() => {this.setState({failed:false});window.scrollTo(0,0);}} type="button" variant="outline">重试当前页面</Button>
+        <Button onClick={() => location.reload()} type="button" variant="outline">重新加载</Button>
       </div>
     </div>;
   }

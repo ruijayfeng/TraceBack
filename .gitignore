@@ -32,3 +32,5 @@ node_modules/
 
 # Local agent tooling (kept out of the upstream PR; see THIRD_PARTY_NOTICES.md)
 .dsh/
+.agents/
+skills-lock.json

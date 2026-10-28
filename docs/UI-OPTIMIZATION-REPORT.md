@@ -77,7 +77,7 @@ AI 入口/锚点；重新生成二次确认；生成进度/取消/45s 超时/失
 1. **项目 LICENSE**：本分支新增 MIT `LICENSE`（上游未声明，供 PR 评审）。
 2. **coss registry MIT 口径**：`apps/ui/registry` 声明 MIT，但公开发布前建议向 coss.com 书面确认；未使用 AGPL 的 `packages/ui`。
 3. **rare-ui `ai-status`**：保留源文件作可选试点，未接入；若接入需页面/README 可见 rareui.com 链接。
-4. **真实 45k 数据集 E2E**：仍以 `TRACEBACK_REAL_DATA=1` + 数据文件 gate；本机无该数据集，3 个 @real skipped。真实快照下建议再跑一次。
+4. **真实 45k 数据集 E2E**：不在本 PR 范围（用户明确暂不提供数据，数据也不随仓库分发）；`@real` 测试保留为可选 gate，无数据自动 skip。
 5. **T103 异步 job**：已实现 job/poll/cancel；同步 `/explain` 保留兼容。
 6. 视觉基线是 2026-10-28 当前代码；后续 UI 改动需重跑 `npm run test:e2e:visual`。
 

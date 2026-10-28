@@ -48,6 +48,16 @@ def test_python_and_pinned_parser_test_versions():
         assert version(package) == expected
 
 
+def test_schema_validator_is_declared_for_tests_and_optional_prototype():
+    import tomllib
+    from importlib.metadata import version
+    project = tomllib.loads((ROOT / 'backend/pyproject.toml').read_text(encoding='utf8'))['project']
+    for extra in ('test', 'prototype'):
+        assert 'jsonschema==4.23.0' in project['optional-dependencies'][extra]
+    assert not any(dep.startswith('jsonschema') for dep in project['dependencies'])
+    assert version('jsonschema') == '4.23.0'
+
+
 @pytest.mark.parametrize("module", ["main.py", "services/analysis.py", "services/queries.py",
                                     "api/__init__.py", "api/schemas.py", "api/routes.py"])
 def test_exact_task05_scope_is_allowed(contract_copy, module):

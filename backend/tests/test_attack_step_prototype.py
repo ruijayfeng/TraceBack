@@ -5,9 +5,6 @@ import os
 from pathlib import Path
 import sys
 
-if os.environ.get('TRACEBACK_SCHEMA_VALIDATOR_PATH'):
-    sys.path.insert(0,os.environ['TRACEBACK_SCHEMA_VALIDATOR_PATH'])
-
 import pytest
 from app.attack_steps.candidate import generate
 from app.attack_steps.evidence import checked_reference,descriptors,p1_proof,reference
@@ -295,8 +292,10 @@ def test_fresh_cli_process(tmp_path):
     files=fixture_files(synthetic(),tmp_path)
     command=[sys.executable,str(ROOT/'scripts/run_attack_step_prototype.py')]
     for k in ['stage8','stage9','receipt','dataset','provenance']: command.extend(['--'+k,str(files[k])])
-    command.extend(['--output',str(tmp_path/'fresh_run'),'--validator-runtime',os.environ['TRACEBACK_SCHEMA_VALIDATOR_PATH']])
-    result=subprocess.run(command,capture_output=True,text=True,env={**os.environ,'PYTHONDONTWRITEBYTECODE':'1'})
+    command.extend(['--output',str(tmp_path/'fresh_run')])
+    env = {**os.environ, 'PYTHONDONTWRITEBYTECODE': '1'}
+    env.pop('TRACEBACK_SCHEMA_VALIDATOR_PATH', None)
+    result=subprocess.run(command,capture_output=True,text=True,env=env)
     assert result.returncode==0,result.stderr
     assert (tmp_path/'fresh_run/seal.json').is_file()
 

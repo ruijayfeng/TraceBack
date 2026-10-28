@@ -65,7 +65,8 @@ test('closing during a real CLI run preserves the task and opens its actual over
   expect(previous).toBeTruthy();await page.getByLabel('历史分析',{exact:true}).selectOption(previous.run_id);
   await expect(page.locator('.overview-page')).toHaveAttribute('data-analysis-id',previous.run_id);
   await expect(page.locator('.overview-metric').first().locator('strong')).toHaveText('2');
-  await expect(page.locator('.trend-meta')).toContainText('共 2 条告警');
+  const previousSummary=await request.get('/api/v1/stage-analyses/'+previous.run_id+'/summary').then(r=>r.json());
+  await expect(page.locator('.trend-meta')).toContainText(`共 ${previousSummary.summary.counts.kept_count} 条保留告警`);
   await page.getByRole('navigation',{name:'功能模块'}).getByRole('link',{name:'分析记录',exact:true}).click();
   const history=page.getByRole('region',{name:'历史分析任务'});await expect(history).toBeVisible();
   const failed=history.locator('tbody tr').filter({hasText:'smoke-intentional-failure.jsonl'}).first();

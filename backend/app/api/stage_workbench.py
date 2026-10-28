@@ -67,12 +67,19 @@ class StageWorkbench:
 
     def stage9_reader(self, analysis_id=STAGE9_ANALYSIS_ID):
         if analysis_id in BASELINES:
-            return Stage9ArtifactReader(self.root, self.root / BASELINES[analysis_id])
+            return Stage9ArtifactReader(self.root, self.root / BASELINES[analysis_id],
+                                        require_manifest=analysis_id == STAGE9_ANALYSIS_ID)
         return self.runs.reader(analysis_id)
 
     def reader_for(self, analysis_id):
         # Keep the historical no-argument primary-reader extension point.
         return self.stage9_reader() if analysis_id == STAGE9_ANALYSIS_ID else self.stage9_reader(analysis_id)
+
+    def stage9_projection(self, analysis_id, method, *args):
+        try:
+            return getattr(self.reader_for(analysis_id), method)(*args)
+        except (OSError, ValueError, KeyError) as exc:
+            raise QueryError(409, 'stage_snapshot_integrity_error') from exc
 
     def catalog(self):
         items = []
@@ -237,14 +244,14 @@ def install_stage_workbench(app, root):
     def summary(analysis_id: AnalysisID, request: Request):
         no_query(request)
         if service.is_stage9(analysis_id):
-            return dict(analysis_id=analysis_id, summary=service.reader_for(analysis_id).summary())
+            return dict(analysis_id=analysis_id, summary=service.stage9_projection(analysis_id, 'summary'))
         raise QueryError(404, 'summary_not_available_for_legacy')
 
     @router.get('/{analysis_id}/traces/{subject_id}')
     def trace(analysis_id: AnalysisID, subject_id: str, request: Request):
         no_query(request)
         if service.is_stage9(analysis_id):
-            trace = service.reader_for(analysis_id).trace_projection(subject_id)
+            trace = service.stage9_projection(analysis_id, 'trace_projection', subject_id)
             if trace is None:
                 raise QueryError(404, 'stage_evidence_not_found')
             return dict(analysis_id=analysis_id, trace=trace,
@@ -261,7 +268,7 @@ def install_stage_workbench(app, root):
     def raw(analysis_id: AnalysisID, alert_id: AlertID, request: Request):
         no_query(request)
         if service.is_stage9(analysis_id):
-            raw_alert = service.reader_for(analysis_id).raw_alert(alert_id)
+            raw_alert = service.stage9_projection(analysis_id, 'raw_alert', alert_id)
             if raw_alert is None:
                 raise QueryError(404, 'stage_alert_not_found')
             return dict(analysis_id=analysis_id, raw_alert=raw_alert)

@@ -44,7 +44,7 @@ BANNED_DIRECTORIES = {
     "kafka", "flink", "spark", "elasticsearch", "neo4j", "kubernetes", "gnn",
 }
 ALLOWED_RUNTIME = {"pydantic", "pyyaml", "annotated-types", "typing-extensions", "typing-inspection", "duckdb", "fastapi", "uvicorn", "httpx"}
-ALLOWED_TEST = {"pytest", "iniconfig", "packaging", "pluggy", "pygments", "colorama", "httpx"}
+ALLOWED_TEST = {"pytest", "iniconfig", "packaging", "pluggy", "pygments", "colorama", "httpx", "jsonschema"}
 
 # Preserve existing foundations; allow only the exact authorized Task 03 files.
 ALLOWED_APP_FILES = {

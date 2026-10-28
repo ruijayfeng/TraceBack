@@ -20,6 +20,7 @@ a deterministic read-only snapshot for display only.
 from __future__ import annotations
 
 import json
+from hashlib import sha256
 from pathlib import Path
 
 from .reconstruction import (AttackChainReconstruction, FrozenStageGraph,
@@ -41,9 +42,10 @@ _DISPLAY_KIND = {'DIRECTED_EDGE': 'STRONG_DIRECTED',
 class Stage9ArtifactReader:
     """Deterministic, read-only projection of the sealed ⑨ artifact."""
 
-    def __init__(self, root, artifact_dir):
+    def __init__(self, root, artifact_dir, *, require_manifest=False):
         self.root = Path(root).resolve()
         self.artifact_dir = Path(artifact_dir).resolve()
+        self.require_manifest = require_manifest
 
     # -- paths -----------------------------------------------------------
     def stage8_path(self):
@@ -54,13 +56,36 @@ class Stage9ArtifactReader:
 
     def manifest_path(self):
         # The acceptance directory carries an artifact manifest with the SHA-256
-        # of stage8.json / stage9.json; used only for identity reporting.
+        # of stage8.json / stage9.json and their execution receipt.
         return self.artifact_dir.parent / 'artifact_manifest.json'
 
     # -- loading ---------------------------------------------------------
     def load(self):
-        stage8 = json.loads(self.stage8_path().read_text(encoding='utf-8'))
-        stage9 = json.loads(self.stage9_path().read_text(encoding='utf-8'))
+        # Hash exactly the bytes parsed below, against the existing seal rather
+        # than generating a fresh receipt from potentially damaged files.
+        files = {name: (self.artifact_dir / name).read_bytes()
+                 for name in ('stage8.json', 'stage9.json', 'receipt.json')}
+        hashes = {name: sha256(value).hexdigest() for name, value in files.items()}
+        manifest_path = self.manifest_path()
+        if self.require_manifest or manifest_path.is_file():
+            manifest = json.loads(manifest_path.read_text(encoding='utf8'))
+            if not isinstance(manifest, dict):
+                raise ValueError('stage9_manifest_invalid')
+            manifest = {key.replace('\\', '/'): value for key, value in manifest.items()}
+            for name in files:
+                key = (self.artifact_dir / name).relative_to(manifest_path.parent).as_posix()
+                if manifest.get(key) != hashes[name]:
+                    raise ValueError('stage9_manifest_hash_mismatch:' + name)
+        receipt = json.loads(files['receipt.json'])
+        if not isinstance(receipt, dict):
+            raise ValueError('stage9_receipt_invalid')
+        for name in ('stage8.json', 'stage9.json'):
+            if receipt.get(name.replace('.json', '_sha256')) != hashes[name]:
+                raise ValueError('stage9_receipt_hash_mismatch:' + name)
+        stage8 = json.loads(files['stage8.json'])
+        stage9 = json.loads(files['stage9.json'])
+        if not isinstance(stage8, dict) or not isinstance(stage9, dict):
+            raise ValueError('stage9_artifact_invalid')
 
         # Read-only integrity: build the frozen graph from the sealed ⑧ handoff.
         # from_stage8 only indexes + validates evidence references; it does not
@@ -72,6 +97,8 @@ class Stage9ArtifactReader:
 
         # Read the already-sealed chains; never recompute them.
         reconstruction = AttackChainReconstruction.model_validate(stage9)
+        if not (reconstruction.input_digest == graph.input_digest == receipt.get('graph_input_digest')):
+            raise ValueError('stage9_input_digest_mismatch')
 
         # Chain references must resolve into the frozen graph (no dangling ids).
         stages = graph.stages
@@ -82,10 +109,28 @@ class Stage9ArtifactReader:
                 raise ValueError('stage9_chain_dangling_stage')
             if set(chain.relation_ids) - set(relations):
                 raise ValueError('stage9_chain_dangling_relation')
+            for rid in chain.relation_ids:
+                relation = _data(relations[rid])
+                if {relation['stage_a_id'], relation['stage_b_id']} - set(chain.stage_ids):
+                    raise ValueError('stage9_relation_outside_chain')
+        if sorted(s for c in reconstruction.chains for s in c.stage_ids) != sorted(stages):
+            raise ValueError('stage9_stage_partition_mismatch')
+        if sorted(r for c in reconstruction.chains for r in c.relation_ids) != sorted(relations):
+            raise ValueError('stage9_relation_partition_mismatch')
+
+        statistics = stage8['statistics']
+        input_count = statistics['INPUT_ALERTS']
+        kept_count = statistics['KEPT_ALERTS']
+        if (type(input_count) is not int or type(kept_count) is not int
+                or not 0 <= kept_count <= input_count or kept_count != len(stage8['alerts'])
+                or receipt['statistics']['INPUT_ALERTS'] != input_count
+                or receipt['statistics']['KEPT_ALERTS'] != kept_count):
+            raise ValueError('stage9_alert_counts_mismatch')
 
         return dict(stages=stages, relations=relations, decisions=decisions,
                     evidence=stage8['evidence'], alerts=stage8['alerts'],
                     entities=stage8.get('entities', []),
+                    input_count=input_count,
                     reconstruction=reconstruction,
                     graph_input_digest=graph.input_digest,
                     input_digest=reconstruction.input_digest)
@@ -157,7 +202,7 @@ class Stage9ArtifactReader:
         no_relation = sum(1 for d in decisions
                           if _data(d)['relation_type'] == NO_RELATION)
 
-        counts = dict(input_count=len(data['alerts']),
+        counts = dict(input_count=data['input_count'],
                       community_count=len({_data(s)['community_id'] for s in stages.values()}),
                       stage_count=len(stages),
                       relation_count=len(relations),
@@ -220,8 +265,8 @@ class Stage9ArtifactReader:
 
         return dict(
             counts=dict(
-                input_count=len(alerts),
-                kept_count=len(alerts),  # KEPT_ALERTS == INPUT_ALERTS for the sealed run
+                input_count=data['input_count'],
+                kept_count=len(alerts),
                 stage_count=len(stages),
                 host_count=len(host),
             ),

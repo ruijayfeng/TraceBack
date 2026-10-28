@@ -64,7 +64,7 @@ function AlertTrend({summary}: {summary: StageSummary}) {
   const total = series.reduce((a, b) => a + b.count, 0);
   const startT = series[0].time, endT = series[series.length - 1].time;
   return <div className="trend-wrap">
-    <div className="trend-meta"><span>共 {total} 条告警 · {n} 个时间桶</span><span className="muted">{startT.slice(11, 16)} — {endT.slice(11, 16)} UTC</span></div>
+    <div className="trend-meta"><span>共 {total} 条保留告警 · {n} 个时间桶</span><span className="muted">{startT.slice(11, 16)} — {endT.slice(11, 16)} UTC</span></div>
     <svg className="trend-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="告警时间分布折线图">
       <defs><linearGradient id="trend-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#1677ff" stopOpacity="0.22"/><stop offset="100%" stopColor="#1677ff" stopOpacity="0.02"/></linearGradient></defs>
       {[0,1,2,3].map(i=><g key={i}><line x1={pad} y1={pad+i*(height-2*pad)/3} x2={width-pad} y2={pad+i*(height-2*pad)/3} stroke="#edf2f8"/><text x="2" y={pad+i*(height-2*pad)/3+4} fill="#8b9ab0" fontSize="10">{Math.round(max*(1-i/3))}</text></g>)}
@@ -214,7 +214,7 @@ export default function OverviewPage({data, summary, onOpenChain, onNavigate}: {
 
     <div className="overview-grid">
       <section className="panel overview-panel">
-        <div className="section-heading"><h2>告警时间分布</h2><span className="muted">原始告警按分钟聚合</span></div>
+        <div className="section-heading"><h2>告警时间分布</h2><span className="muted">保留告警按分钟聚合</span></div>
         <AlertTrend summary={summary}/>
       </section>
       <section className="panel overview-panel overview-relations-panel">

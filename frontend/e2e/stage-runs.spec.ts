@@ -1,9 +1,39 @@
 /** Real browser + real backend + formal CLI. No API routing or result mocks. */
 import {test,expect} from '@playwright/test';
-import {readFile,writeFile} from 'node:fs/promises';
+import {mkdir,readFile,writeFile} from 'node:fs/promises';
 import path from 'node:path';
 
 const output=path.resolve('../outputs/workbench_productization_checks');
+
+test('overview separates uploaded input from retained alerts after real deduplication',async({page,request})=>{
+  const event=JSON.parse((await readFile(path.join(output,'native.jsonl'),'utf8')).trim().split('\n')[0]);
+  const duplicate=structuredClone(event);
+  duplicate.event.timestamp='2026-01-01T00:00:01+00:00';
+  const buffer=Buffer.from([event,duplicate].map(row=>JSON.stringify(row)).join('\n')+'\n');
+  await page.goto('/');
+  await page.getByRole('button',{name:'导入告警',exact:true}).click();
+  const panel=page.getByRole('dialog',{name:'导入告警与分析'});
+  await panel.getByLabel('选择告警文件').setInputFiles({name:'deduplicate-count.jsonl',mimeType:'application/octet-stream',buffer});
+  await expect(panel.getByText('共 2 条 · 通过 2 条 · 失败 0 条 · 校验通过')).toBeVisible();
+  const started=page.waitForResponse(r=>r.request().method()==='POST' && new URL(r.url()).pathname==='/api/v1/stage-runs');
+  await panel.getByRole('button',{name:'开始分析',exact:true}).click();
+  const task=await started.then(r=>r.json());
+  await expect(panel.getByRole('heading',{name:'分析成功',exact:true})).toBeVisible();
+  await page.getByRole('button',{name:'关闭导入面板'}).click();
+  const metric=page.locator('.overview-metric').filter({has:page.locator('.metric-title',{hasText:/^输入告警$/})}).locator('strong');
+  await expect(page.locator('.overview-page')).toHaveAttribute('data-analysis-id',task.run_id);
+  await expect(metric).toHaveText('2');
+  await expect(page.locator('.trend-meta')).toContainText('共 1 条保留告警');
+  const response=await request.get('/api/v1/stage-analyses/'+task.run_id+'/summary');
+  expect(response.ok()).toBeTruthy();
+  expect((await response.json()).summary.counts).toMatchObject({input_count:2,kept_count:1});
+  await page.reload();
+  await expect(metric).toHaveText('2');
+  await expect(page.locator('.trend-meta')).toContainText('共 1 条保留告警');
+  const checks=path.resolve('../outputs/pr_fix_checks');
+  await mkdir(checks,{recursive:true});
+  await page.screenshot({path:path.join(checks,'deduplicated-overview.png'),fullPage:true});
+});
 
 test('uploads two native batches, opens results automatically, switches history and rejects unavailable artifacts',async({page,request})=>{
   const errors:string[]=[];page.on('pageerror',error=>errors.push(error.message));

@@ -20,7 +20,9 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+prototype = ["jsonschema==4.23.0"]
 test = [
+    "jsonschema==4.23.0",
     "httpx==0.28.1",
     "pytest==8.4.1",
     "iniconfig==2.1.0",

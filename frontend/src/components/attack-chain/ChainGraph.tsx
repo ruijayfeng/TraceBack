@@ -1,6 +1,6 @@
 import {categoryLabel, relationLabel} from '../../lib/displayLabels';
-import {Minus, Plus, RotateCcw} from 'lucide-react';
-import {useEffect, useId, useRef, useState} from 'react';
+import {Maximize2, Minus, Plus, RotateCcw} from 'lucide-react';
+import {useEffect, useId, useMemo, useRef, useState} from 'react';
 import type {Chain, ChainNode, Entity} from '../../types/domain';
 import {useMediaQuery} from '../../lib/useMediaQuery';
 import {Notice, shortId} from '../common';
@@ -23,10 +23,11 @@ export function ChainGraph({chain, entities, selection, onSelect}: {chain: Chain
   const drag = useRef<{x: number; y: number; panX: number; panY: number; moved: boolean} | null>(null);
   const suppressClick = useRef(false);
   // Coordinates are display only. Existing source/target IDs define every arrow.
-  const nodes = [...chain.nodes].sort((a, b) => a.start_time.localeCompare(b.start_time) || a.node_id.localeCompare(b.node_id));
-  const positions = new Map(nodes.map((node, index) => [node.node_id, narrow ? {x: 24, y: 42 + index * 150} : {x: 24 + (index % 3) * 300, y: 42 + Math.floor(index / 3) * 178}]));
+  const nodes = useMemo(() => [...chain.nodes].sort((a, b) => a.start_time.localeCompare(b.start_time) || a.node_id.localeCompare(b.node_id)), [chain.nodes]);
+  const positions = useMemo(() => new Map(nodes.map((node, index) => [node.node_id, narrow ? {x: 24, y: 42 + index * 150} : {x: 24 + (index % 3) * 300, y: 42 + Math.floor(index / 3) * 178}])), [nodes, narrow]);
   const width = narrow ? 312 : Math.max(310, Math.min(nodes.length, 3) * 300 + 24);
   const height = narrow ? Math.max(210, nodes.length * 150 + 50) : Math.max(210, Math.ceil(nodes.length / 3) * 178 + 50);
+  const showEdgeLabels = chain.edges.length <= 12 || Boolean(selection?.kind === 'edge');
   const label = (node: ChainNode) => node.entity_ids.map(i => entities.find(e => e.entity_id === i)?.display_value ?? entities.find(e => e.entity_id === i)?.value).filter(Boolean).slice(0, 2).join(' · ');
 
   function select(value: Selection) {if (suppressClick.current) {suppressClick.current = false;return;}onSelect(value);}
@@ -53,11 +54,18 @@ export function ChainGraph({chain, entities, selection, onSelect}: {chain: Chain
   }, []);
 
   function resetView() {setZoom(1);setPan({x: 0, y: 0});}
+  function fitView() {
+    const element = scrollRef.current;
+    if (!element) return;
+    const next = Math.max(MIN_ZOOM, Math.min(1, Math.min((element.clientWidth - 16) / width, (element.clientHeight - 16) / height)));
+    setZoom(Number(next.toFixed(2)));
+    setPan({x: 0, y: 0});
+  }
 
   return <div>
     <div className="graph-toolbar">
       <span className="muted">{nodes.length} 节点 · {chain.edges.length} 有向边 · 置信分为算法分{narrow ? ' · 上下滑动查看' : ''}</span>
-      <button aria-label="缩小攻击链" onClick={() => setZoom(z => Math.max(MIN_ZOOM, z - 0.25))} type="button"><TraceIcon icon={Minus} size={14}/></button>
+      <button aria-label="适应攻击链视图" onClick={fitView} type="button"><TraceIcon icon={Maximize2} size={13}/></button><button aria-label="缩小攻击链" onClick={() => setZoom(z => Math.max(MIN_ZOOM, z - 0.25))} type="button"><TraceIcon icon={Minus} size={14}/></button>
       <button onClick={resetView} type="button"><TraceIcon icon={RotateCcw} size={13}/><span className="sr-only">重置攻击链缩放</span>{Math.round(zoom * 100)}%</button>
       <button aria-label="放大攻击链" onClick={() => setZoom(z => Math.min(MAX_ZOOM, z + 0.25))} type="button"><TraceIcon icon={Plus} size={14}/></button>
     </div>
@@ -82,7 +90,7 @@ export function ChainGraph({chain, entities, selection, onSelect}: {chain: Chain
             const value = {kind: 'edge' as const, id: edge.edge_id};
             return <g aria-label={`选择边 ${relationLabel(edge.relation_type)} ${shortId(edge.edge_id)}`} aria-pressed={selected} className={selected ? 'graph-edge selected' : 'graph-edge'} data-source={edge.source_node_id} data-target={edge.target_node_id} key={edge.edge_id}
               onClick={() => select(value)} onKeyDown={event => keyboard(event, value, chain.edges.map(item => ({kind: 'edge' as const, id: item.edge_id})))} role="button" tabIndex={0}>
-              <path className="edge-hit" d={d} fill="none"/><path className="edge-line" d={d} fill="none" markerEnd={`url(#${marker})`}/><text className="edge-label" textAnchor="middle" x={(sx + tx) / 2} y={(sy + ty) / 2 - 12}>{relationLabel(edge.relation_type)}</text>
+              <path className="edge-hit" d={d} fill="none"/><path className="edge-line" d={d} fill="none" markerEnd={`url(#${marker})`}/>{showEdgeLabels && <text className="edge-label" textAnchor="middle" x={(sx + tx) / 2} y={(sy + ty) / 2 - 12}>{relationLabel(edge.relation_type)}</text>}
             </g>;
           })}
           {nodes.map(node => {

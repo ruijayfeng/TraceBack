@@ -3,6 +3,7 @@ import {shortId} from '../lib/ids';
 import {api} from '../api/client';
 import {useResource} from '../api/hooks';
 import type {IncidentRow} from '../types/domain';
+import {useState} from 'react';
 import {AIStatus, Notice, Pager, Time} from '../components/common';
 import {CopyButton} from '../components/ui/copy-id';
 import {EmptyState} from '../components/ui/empty-state';
@@ -40,8 +41,11 @@ function matchesQuery(row: IncidentRow, query: string): boolean {
 const toInputValue = (iso: string) => iso ? iso.slice(0, 16) : '';
 const fromInputValue = (local: string) => local ? (local.length === 16 ? `${local}:00.000Z` : `${local}.000Z`) : '';
 
-export function IncidentTable({rows, onOpen}: {rows: IncidentRow[]; onOpen: (i: string) => void}) {
-  return <Table className="incident-table" render={<div className="table-scroll table-scroll-list" tabIndex={0} />}>
+export type TableDensity = 'comfortable' | 'compact';
+
+export function IncidentTable({rows, onOpen, density = 'comfortable'}: {rows: IncidentRow[]; onOpen: (i: string) => void; density?: TableDensity}) {
+  return <Table className="incident-table" render={<div className={`table-scroll table-scroll-list table-density-${density}`} tabIndex={0} />}>
+    <colgroup><col className="col-incident"/><col className="col-time"/><col className="col-counts"/><col className="col-entities"/><col className="col-ai"/><col className="col-action"/></colgroup>
     <TableCaption className="sr-only">安全事件列表，共 {rows.length} 条</TableCaption>
     <TableHeader><TableRow><TableHead>安全事件 / 状态</TableHead><TableHead>观察区间 · UTC</TableHead><TableHead>告警 / 节点 / 边</TableHead><TableHead>实体 / 来源</TableHead><TableHead>AI / ATT&amp;CK</TableHead><TableHead>调查</TableHead></TableRow></TableHeader>
     <TableBody>{rows.map(r => <TableRow
@@ -63,6 +67,13 @@ export function IncidentTable({rows, onOpen}: {rows: IncidentRow[]; onOpen: (i: 
 
 export default function IncidentList({analysisId, filters, onFilters, onOpen, revision}: {analysisId: string; filters: ListFilters; onFilters: (f: ListFilters) => void; onOpen: (i: string) => void; revision: number}) {
   const {page = 1, pageSize = 20, kind = 'all', sort = 'time', severity = '', q = '', entity = '', startTime = '', endTime = ''} = filters;
+  const [density, setDensity] = useState<TableDensity>(() => {
+    try {return window.localStorage.getItem('traceback.tableDensity') === 'compact' ? 'compact' : 'comfortable';} catch {return 'comfortable';}
+  });
+  function changeDensity(next: TableDensity) {
+    setDensity(next);
+    try {window.localStorage.setItem('traceback.tableDensity', next);} catch { /* storage unavailable */ }
+  }
   const resource = useResource(signal => api.incidents(analysisId,page,kind,sort,severity,pageSize,q,entity,startTime,endTime,signal), [analysisId,page,pageSize,kind,sort,severity,q,entity,startTime,endTime,revision], {keepPrevious:true});
   const firstLoad = resource.loading && !resource.data;
   const query = q.trim().toLowerCase();
@@ -88,14 +99,23 @@ export default function IncidentList({analysisId, filters, onFilters, onOpen, re
   return <section aria-busy={resource.loading || undefined} className="panel" id="incident-list">
     <div className="section-heading"><h2>安全事件列表</h2><span className="muted">按设备等级筛选 · 无额外风险评分</span></div>
     <div className="list-toolbar">
-      <label className="search-field">关键词搜索<input aria-label="搜索当前页" onChange={event => onFilters({...filters,q:event.target.value,page:1})} placeholder="事件 ID、来源、规则、ATT&CK" type="search" value={q}/></label>
-      <label className="search-field entity-field">实体搜索<input aria-label="搜索实体" onChange={event => onFilters({...filters,entity:event.target.value,page:1})} placeholder="主机、IP、账号、进程名" type="search" value={entity}/></label>
-      <div className="time-filters">
-        <label>开始时间 · UTC<input aria-label="开始时间" onChange={event => onFilters({...filters,startTime:fromInputValue(event.target.value),page:1})} step="1" type="datetime-local" value={toInputValue(startTime)}/></label>
-        <label>结束时间 · UTC<input aria-label="结束时间" onChange={event => onFilters({...filters,endTime:fromInputValue(event.target.value),page:1})} step="1" type="datetime-local" value={toInputValue(endTime)}/></label>
+      <div className="list-search-row">
+        <label className="search-field">关键词搜索<input aria-label="搜索当前页" onChange={event => onFilters({...filters,q:event.target.value,page:1})} placeholder="事件 ID、来源、规则、ATT&CK" type="search" value={q}/></label>
+        <label className="search-field entity-field">实体搜索<input aria-label="搜索实体" onChange={event => onFilters({...filters,entity:event.target.value,page:1})} placeholder="主机、IP、账号、进程名" type="search" value={entity}/></label>
+        <div className="list-toolbar-actions">
+          <span className="muted list-count">{q || entity ? `匹配 ${resource.data?.total?.toLocaleString() ?? '…'} 条` : `第 ${page} 页 · 共 ${resource.data?.total?.toLocaleString() ?? '…'} 条`}{resource.loading ? ' · 更新中…' : ''}</span>
+          <label className="density-control">表格密度<select aria-label="表格密度" onChange={event => changeDensity(event.target.value as TableDensity)} value={density}><option value="comfortable">舒适</option><option value="compact">紧凑</option></select></label>
+          <button disabled={!rows.length} onClick={exportCsv} type="button"><TraceIcon icon={Download} size={14}/>导出当前页 CSV</button>
+        </div>
       </div>
-      <span className="muted list-count">{q || entity ? `匹配 ${resource.data?.total?.toLocaleString() ?? '…'} 条` : `第 ${page} 页 · 共 ${resource.data?.total?.toLocaleString() ?? '…'} 条`}{resource.loading ? ' · 更新中…' : ''}</span>
-      <button disabled={!rows.length} onClick={exportCsv} type="button"><TraceIcon icon={Download} size={14}/>导出当前页 CSV</button>
+      <div className="list-time-row">
+        <span className="list-time-label">观察时间 · UTC</span>
+        <div className="time-filters">
+          <label>开始时间<input aria-label="开始时间" onChange={event => onFilters({...filters,startTime:fromInputValue(event.target.value),page:1})} step="1" type="datetime-local" value={toInputValue(startTime)}/></label>
+          <label>结束时间<input aria-label="结束时间" onChange={event => onFilters({...filters,endTime:fromInputValue(event.target.value),page:1})} step="1" type="datetime-local" value={toInputValue(endTime)}/></label>
+        </div>
+        {(startTime || endTime) && <button className="text-button time-clear" onClick={() => onFilters({...filters,startTime:'',endTime:'',page:1})} type="button">清除时间范围</button>}
+      </div>
     </div>
     <div className="filters">
       <label>事件类型<select value={kind} onChange={e => onFilters({...filters, kind: e.target.value, page: 1})}>{KIND_LABELS.map(([value,label]) => <option key={value} value={value}>{label}</option>)}</select></label>
@@ -107,7 +127,7 @@ export default function IncidentList({analysisId, filters, onFilters, onOpen, re
     {firstLoad && <Notice kind="loading">正在读取安全事件列表…</Notice>}
     {resource.error ? <ErrorState error={resource.error} onRetry={resource.reload} scope="安全事件列表"/> : resource.data ? <>
       {rows.length
-        ? <>{resource.loading && <p className="muted" role="status">正在更新第 {page} 页…</p>}<IncidentTable onOpen={onOpen} rows={rows}/></>
+        ? <>{resource.loading && <p className="muted" role="status">正在更新第 {page} 页…</p>}<IncidentTable density={density} onOpen={onOpen} rows={rows}/></>
         : <EmptyState
             description={query || entity ? '没有匹配关键词或实体的事件；可清除搜索，或改用更短的关键词。' : filtersActive ? '当前筛选或页码下没有匹配事件，可清除筛选后重试。' : '该分析快照中没有可展示的安全事件。'}
             title={query ? `没有匹配“${q}”的安全事件。` : entity ? `没有匹配实体“${entity}”的安全事件。` : resource.data.total === 0 ? '当前筛选下没有安全事件。' : '当前页没有安全事件。'}

@@ -9,6 +9,7 @@ import {NodeDetail,EdgeDetailPanel} from '../components/attack-chain/ObjectDetai
 import {EvidencePanel} from '../components/evidence/EvidencePanel';
 import {AIReport,ReportContent,verifiedReport} from '../components/ai-analysis/AIReport';
 import {JsonView} from '../components/common';
+import {Timeline} from '../pages/Timeline';
 import IncidentList,{IncidentTable} from '../pages/IncidentList';
 import Dashboard from '../pages/Dashboard';
 import IncidentDetail from '../pages/IncidentDetail';
@@ -231,5 +232,44 @@ describe('Detail shell, deep evidence and AI generation states', () => {
     report.summary[0]={...report.summary[0],alert_refs:[],evidence_refs:[]};
     render(<ReportContent report={report} onEvidence={vi.fn()} onSelect={vi.fn()}/>);
     expect(screen.getByRole('button',{name:/查看陈述证据 · 0 引用/})).toBeDisabled();
+  });
+});
+
+describe('follow-up polish (F12–F18)', () => {
+  it('toggles compact table density and persists it', async () => {
+    window.localStorage.clear();
+    vi.spyOn(api,'incidents').mockResolvedValue(f.rows);
+    const {container}=render(<IncidentList analysisId={f.analysisId} filters={filters} revision={0} onFilters={vi.fn()} onOpen={vi.fn()}/>);
+    await screen.findByText('查看详情',{exact:false});
+    expect(container.querySelector('.table-density-comfortable')).not.toBeNull();
+    fireEvent.change(screen.getByLabelText('表格密度'),{target:{value:'compact'}});
+    expect(container.querySelector('.table-density-compact')).not.toBeNull();
+    expect(window.localStorage.getItem('traceback.tableDensity')).toBe('compact');
+  });
+  it('offers report-level navigation anchors', () => {
+    render(<ReportContent report={f.explanation.report_json!} onEvidence={vi.fn()} onSelect={vi.fn()}/>);
+    expect(screen.getByRole('navigation',{name:'报告导航'})).toBeInTheDocument();
+    for(const [label,id] of [['摘要','report-summary'],['发现','report-findings'],['ATT&CK','report-attack'],['风险','report-risk'],['建议','report-actions']]) {
+      expect(screen.getByRole('link',{name:label})).toHaveAttribute('href','#'+id);
+    }
+  });
+  it('renders a 20-node chain with a fit-to-view control', () => {
+    const template=f.chain.chain.nodes[0];
+    const nodes=Array.from({length:20},(_,index)=>({...template,node_id:'nod_'+String(index).padStart(64,'0'),start_time:`2022-01-21T00:00:${String(index%60).padStart(2,'0')}.000000Z`}));
+    const chain={...(f.chain.chain as unknown as Chain),nodes,edges:[]};
+    render(<ChainGraph chain={chain} entities={[]} selection={null} onSelect={vi.fn()}/>);
+    expect(screen.getAllByRole('button',{name:/选择节点/})).toHaveLength(20);
+    expect(screen.getByRole('button',{name:'适应攻击链视图'})).toBeInTheDocument();
+  });
+  it('clusters dense timeline objects and expands the cluster list', async () => {
+    const sameTime='2022-01-21T00:00:00.000000Z';
+    const items=[1,2,3].map(index=>({id:'alt_'+index,kind:'alert' as const,alert_ids:['alt_'+index],node_id:null,event_time:sameTime,end_time:sameTime,source_type:'wazuh',sensor:null}));
+    vi.spyOn(api,'timeline').mockResolvedValue({items,page:1,page_size:20,total:3});
+    render(<Timeline analysisId={f.analysisId} incidentId={f.incidentId} onEvidence={vi.fn()} onNode={vi.fn()}/>);
+    const cluster=await screen.findByRole('button',{name:'时间线聚合 3 个对象'});
+    fireEvent.click(cluster);
+    expect(screen.getByRole('region',{name:/聚合对象/})).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button',{name:'关闭聚合列表'}));
+    expect(screen.queryByRole('region',{name:/聚合对象/})).not.toBeInTheDocument();
   });
 });

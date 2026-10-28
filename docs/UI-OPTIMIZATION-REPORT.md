@@ -80,3 +80,21 @@ AI 入口/锚点；重新生成二次确认；生成进度/取消/45s 超时/失
 4. **真实 45k 数据集 E2E**：仍以 `TRACEBACK_REAL_DATA=1` + 数据文件 gate；本机无该数据集，3 个 @real skipped。真实快照下建议再跑一次。
 5. **T103 异步 job**：已实现 job/poll/cancel；同步 `/explain` 保留兼容。
 6. 视觉基线是 2026-10-28 当前代码；后续 UI 改动需重跑 `npm run test:e2e:visual`。
+
+
+---
+
+## 后续打磨（F12–F19，2026-10-28）
+
+在 PR-ready 分支之后继续完成 UI/UX 深度打磨，仍在 `ui/follow-up-polish` 分支（未推送）：
+
+- **F12 列表工具栏**：关键词/实体/时间分成两行，操作区（计数/密度/CSV）右对齐；390–1440 无溢出。
+- **F13 表格密度**：新增“舒适/紧凑”切换（localStorage 持久化）、`table-layout:fixed` + colgroup 列宽、紧凑模式行高/字号/摘要行数收敛；移动卡片不回归。
+- **F14 AI 报告阅读**：报告级 TOC（摘要/发现/攻击过程/ATT&CK/实体/风险/建议 anchor），长报告可直接跳转；既有 claim→证据、导出、诊断折叠保持。
+- **F15 大攻击链**：节点/坐标 useMemo、20+ 节点渲染测试、“适应攻击链视图”按钮；边标签在 >12 条边时只显示选中边，降低密集图噪声。
+- **F16 时间线聚合**：同一车道 1.6% 范围内的密集对象聚合为计数 marker，点击展开对象列表（时间/类型/ID，可继续打开证据/节点）。
+- **F17 快捷键帮助**：`?` 或顶栏帮助按钮打开 Dialog 帮助，列出 `/`、`Esc`、`j/k`、Enter/Space、方向键/Home/End；移动端从导航抽屉打开。
+- **F18 错误/离线矩阵**：`online/offline` 事件驱动离线 banner（role=status），ErrorState 只对可重试错误显示重试，新增错误码映射与 shell 测试。
+- **F19 视觉/回归**：工具栏/移动顶栏/etc. polish；16 张视觉基线已用新代码刷新；axe 0、detector 0、e2e 20 passed/3 skipped、Vitest 8 files/**60 tests**、bundle JS 138.62KB gzip / CSS 15.85KB gzip。
+
+命令：`npm run verify`、`npm run test:e2e`、`npm run test:e2e:visual`、`npm run detect:ui:check`。

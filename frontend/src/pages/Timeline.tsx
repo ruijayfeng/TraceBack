@@ -22,7 +22,7 @@ function utcTick(ms: number, spanMs: number): string {
 }
 
 export function Timeline({analysisId, incidentId, initialPage = 1, onPageChange, onEvidence, onNode}: {analysisId: string; incidentId: string; initialPage?: number; onPageChange?: (page: number) => void; onEvidence: (e: EvidenceSelection) => void; onNode: (id: string) => void}) {
-  const [page, setPage] = useState(initialPage), [zoom, setZoom] = useState(1);
+  const [page, setPage] = useState(initialPage), [zoom, setZoom] = useState(1), [openCluster, setOpenCluster] = useState<{lane: string; items: TimelineItem[]} | null>(null);
   useEffect(() => {setPage(initialPage);},[initialPage]);
   function changePage(next: number) {setPage(next);onPageChange?.(next);}
   const resource = useResource(signal => api.timeline(analysisId, incidentId, page, 20, signal), [analysisId, incidentId, page], {keepPrevious:true});
@@ -63,8 +63,21 @@ export function Timeline({analysisId, incidentId, initialPage = 1, onPageChange,
     {resource.error && <ErrorState error={resource.error} onRetry={resource.reload} scope="设备观测时间线"/>}
     {resource.data && (items.length ? <><div className="timeline-scroll"><div className="timeline-canvas" style={{width: `${100 * zoom}%`}}>
       <div aria-hidden className="timeline-ruler"><span className="timeline-lane-label"/><div className="timeline-ruler-track">{ticks.map((tick, index) => <span className="timeline-tick" key={index} style={{left: `${2 + (index / 4) * 96}%`, transform: index === 0 ? 'translateX(0)' : index === 4 ? 'translateX(-100%)' : 'translateX(-50%)'}}>{utcTick(tick, span)}</span>)}</div></div>
-      {lanes.map(lane => <div className="timeline-lane" key={lane}><b>{lane}</b><div className="timeline-track">{items.filter(i => sourceLabel(i.source_type) + ' / ' + (i.sensor ?? '未提供设备') === lane).map(i => <button aria-label={`时间线 ${kindLabel(i.kind)} ${i.id}`} className={i.kind === 'node' ? 'timeline-node' : 'timeline-alert'} key={i.id} onClick={() => choose(i)} style={{left: `${position(i.event_time)}%`}} title={`${kindLabel(i.kind)} ${i.event_time} ${i.id}`} type="button"><TimelineMarker kind={i.kind}/></button>)}</div></div>)}</div></div>
+      {lanes.map(lane => {
+        const laneItems = items.filter(i => sourceLabel(i.source_type) + ' / ' + (i.sensor ?? '未提供设备') === lane).sort((a, b) => Date.parse(a.event_time) - Date.parse(b.event_time));
+        const clusters: {left: number; items: TimelineItem[]}[] = [];
+        for (const item of laneItems) {
+          const left = position(item.event_time);
+          const previous = clusters[clusters.length - 1];
+          if (previous && Math.abs(previous.left - left) <= 1.6 && previous.items.length < 99) previous.items.push(item);
+          else clusters.push({left, items: [item]});
+        }
+        return <div className="timeline-lane" key={lane}><b>{lane}</b><div className="timeline-track">{clusters.map(cluster => cluster.items.length === 1
+          ? <button aria-label={`时间线 ${kindLabel(cluster.items[0].kind)} ${cluster.items[0].id}`} className={cluster.items[0].kind === 'node' ? 'timeline-node' : 'timeline-alert'} key={cluster.items[0].id} onClick={() => choose(cluster.items[0])} style={{left: `${cluster.left}%`}} title={`${kindLabel(cluster.items[0].kind)} ${cluster.items[0].event_time} ${cluster.items[0].id}`} type="button"><TimelineMarker kind={cluster.items[0].kind}/></button>
+          : <button aria-label={`时间线聚合 ${cluster.items.length} 个对象`} className="timeline-cluster" key={`${lane}-${cluster.left}`} onClick={() => setOpenCluster({lane, items: cluster.items})} style={{left: `${cluster.left}%`}} title={`${cluster.items.length} 个对象在此时间段`} type="button">{cluster.items.length}</button>)}</div></div>;
+      })}</div></div>
       <p className="muted timeline-hint">当前页 {items.length} / {total} 个对象显示在轨道上；拖动缩放可展开密集时间段。</p>
+      {openCluster && <div aria-label={`${openCluster.lane} 聚合对象`} className="timeline-cluster-panel" role="region"><div className="timeline-cluster-heading"><strong>{openCluster.lane} · {openCluster.items.length} 个对象</strong><button aria-label="关闭聚合列表" className="text-button" onClick={() => setOpenCluster(null)} type="button">关闭</button></div><ul>{openCluster.items.map(item => <li key={item.id}><button className="text-button" onClick={() => {setOpenCluster(null);choose(item);}} type="button"><Time value={item.event_time}/> · {kindLabel(item.kind)} · <StableId copy={false} label="时间线对象 ID" value={item.id}/></button></li>)}</ul></div>}
       <div className="table-scroll"><table><thead><tr><th>时间 / UTC</th><th>来源 / 设备</th><th>已有对象</th><th>引用</th></tr></thead><tbody>{items.map(i => <tr key={`${i.id}/${sourceLabel(i.source_type)}/${i.sensor}`}><td><Time value={i.event_time}/>{i.end_time !== i.event_time && <><br/><Time value={i.end_time}/></>}</td><td>{sourceLabel(i.source_type)} · {i.sensor ?? '未提供'}</td><td>{kindLabel(i.kind)}</td><td><button className="text-button" onClick={() => choose(i)} type="button"><StableId copy={false} label="时间线对象 ID" value={i.id}/></button></td></tr>)}</tbody></table></div></> : <EmptyState description="当前时间线分页没有可操作的告警或节点。" title="当前页没有时间线对象。"/>)}
     {resource.data && <Pager page={page} total={resource.data.total} onChange={changePage}/>}
   </Section>;

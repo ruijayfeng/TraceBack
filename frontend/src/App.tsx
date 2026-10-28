@@ -1,11 +1,12 @@
 import {Component, useEffect, useRef, useState, type ReactNode} from 'react';
 import {api} from './api/client';
-import {ClipboardPaste, GitBranch, LayoutDashboard, Menu, Waypoints, X} from 'lucide-react';
+import {CircleHelp, ClipboardPaste, GitBranch, LayoutDashboard, Menu, Waypoints, X} from 'lucide-react';
 import Dashboard from './pages/Dashboard';
 import IncidentList from './pages/IncidentList';
 import IncidentDetail from './pages/IncidentDetail';
 import {EvidencePanel} from './components/evidence/EvidencePanel';
 import {Notice} from './components/common';
+import {Dialog, DialogClose, DialogDescription, DialogFooter, DialogHeader, DialogPopup, DialogTitle} from './components/ui/dialog';
 import {CopyId} from './components/ui/copy-id';
 import {TraceIcon} from './components/ui/trace-icon';
 import {DEFAULT_FILTERS, readLocation, routeHref, routeTitle, type ListFilters, type Route} from './lib/route';
@@ -44,6 +45,8 @@ function Workspace() {
   const [evidence,setEvidence] = useState<EvidenceSelection|null>(null);
   const [revision,setRevision] = useState(0);
   const [menuOpen,setMenuOpen] = useState(false);
+  const [helpOpen,setHelpOpen] = useState(false);
+  const [online,setOnline] = useState(() => typeof navigator === 'undefined' ? true : navigator.onLine);
   const mainRef = useRef<HTMLElement>(null);
   const menuRef = useRef<HTMLDialogElement>(null);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
@@ -51,6 +54,13 @@ function Workspace() {
   const analysisId = route.analysisId, incidentId = route.incidentId, filters = route.filters;
   const listScrollKey = 'traceback.listScroll.' + analysisId;
 
+  useEffect(() => {
+    const goOnline = () => setOnline(true);
+    const goOffline = () => setOnline(false);
+    addEventListener('online', goOnline);
+    addEventListener('offline', goOffline);
+    return () => {removeEventListener('online', goOnline);removeEventListener('offline', goOffline);};
+  },[]);
   useEffect(() => {
     const handler = () => {
       const next = readLocation();
@@ -88,12 +98,17 @@ function Workspace() {
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) return;
-      const target = event.target as HTMLElement | null;
+      const target = event.target instanceof HTMLElement ? event.target : null;
       const typing = Boolean(target?.closest('input,textarea,select,[contenteditable="true"]'));
       if (event.key === '/' && !typing) {
         event.preventDefault();
         const search = document.querySelector<HTMLInputElement>('[aria-label="搜索当前页"]');
         (search ?? document.getElementById('analysis-input'))?.focus();
+        return;
+      }
+      if (event.key === '?') {
+        event.preventDefault();
+        setHelpOpen(true);
         return;
       }
       if (event.key === 'Escape') {
@@ -159,6 +174,7 @@ function Workspace() {
         <div className="mobile-nav-heading"><strong>调查流程</strong><button aria-label="关闭导航菜单" onClick={closeMenu} type="button"><TraceIcon icon={X} size={18}/></button></div>
         <button aria-current={activeList ? 'page' : undefined} className={'nav-item flex items-center gap-2 ' + (activeList ? 'active' : '')} onClick={() => {closeMenu();analysisId && navigate(analysisId);}} type="button"><TraceIcon icon={LayoutDashboard} size={16}/>分析工作台</button>
         <button aria-current={incidentId ? 'page' : undefined} className={'nav-item flex items-center gap-2 ' + (incidentId ? 'active' : '')} onClick={() => {closeMenu();analysisId && navigate(analysisId,'',{...filters,page:1,kind:'has_chain'});}} type="button"><TraceIcon icon={GitBranch} size={16}/>安全事件 / 证据研判</button>
+        <button className="nav-item flex items-center gap-2" onClick={() => {closeMenu();setHelpOpen(true);}} type="button"><TraceIcon icon={CircleHelp} size={16}/>键盘快捷键</button>
         <p className="sidebar-footer-mobile">离线快照 · 可核验证据<br/>原始告警不等于已确认攻击</p>
       </dialog>
     </aside>
@@ -172,9 +188,11 @@ function Workspace() {
           <button aria-label="从剪贴板粘贴分析 ID" disabled={!navigator.clipboard?.readText} onClick={pasteAnalysis} type="button"><TraceIcon icon={ClipboardPaste} size={14}/><span className="paste-label">粘贴</span></button>
           <button type="submit">打开分析</button>
         </form>
+        <button aria-label="查看快捷键" className="topbar-help" onClick={() => setHelpOpen(true)} type="button"><TraceIcon icon={CircleHelp} size={17}/></button>
         {analysisId && <span className="analysis-chip">当前分析 <CopyId label="当前分析 ID" value={analysisId}/></span>}
       </header>
       <main aria-label="主要内容" id="main-content" ref={mainRef} tabIndex={-1}>
+        {!online && <div className="offline-banner" role="status">当前处于离线状态：已加载的数据仍可查看；重新请求或生成 AI 研判会失败。</div>}
         <PageBoundary key={analysisId + ':' + incidentId}>
           {!analysisId ? <Welcome onOpen={id => navigate(id)}/> : incidentId ? <IncidentDetail
             analysisId={analysisId}
@@ -193,6 +211,20 @@ function Workspace() {
       </main>
     </div>
     {evidence && <EvidencePanel analysisId={analysisId} key={analysisId+evidence.objectId+evidence.alertIds.join(',')} onClose={closeEvidence} selection={evidence}/>}
+    <Dialog onOpenChange={setHelpOpen} open={helpOpen}>
+      <DialogPopup aria-label="键盘快捷键">
+        <DialogHeader><DialogTitle>键盘快捷键</DialogTitle><DialogDescription>输入框内不触发；对话框内按 Esc 先关闭对话框。</DialogDescription></DialogHeader>
+        <dl className="shortcut-list">
+          <div><dt><kbd>/</kbd></dt><dd>聚焦搜索框（列表页）或分析 ID 输入框</dd></div>
+          <div><dt><kbd>?</kbd></dt><dd>打开本快捷键帮助</dd></div>
+          <div><dt><kbd>Esc</kbd></dt><dd>关闭证据抽屉 / 清空搜索 / 退出输入框</dd></div>
+          <div><dt><kbd>j</kbd> <kbd>k</kbd></dt><dd>在事件列表行之间上下移动焦点</dd></div>
+          <div><dt><kbd>Enter</kbd> <kbd>Space</kbd></dt><dd>打开当前聚焦的事件行</dd></div>
+          <div><dt><kbd>方向键</kbd> <kbd>Home</kbd> <kbd>End</kbd></dt><dd>攻击链节点/边之间移动选择</dd></div>
+        </dl>
+        <DialogFooter><DialogClose type="button">关闭</DialogClose></DialogFooter>
+      </DialogPopup>
+    </Dialog>
   </div>;
 }
 

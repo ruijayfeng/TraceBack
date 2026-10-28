@@ -117,6 +117,10 @@ TraceBack/
 - [结果与能力边界](docs/STARTUP.md#数据结果和边界)：历史结果、AI 配置与评测限制。
 - [数据契约](docs/DATA_CONTRACT.md)、[算法配置](docs/ALGORITHM_CONFIG.md)。
 
+## License
+
+本项目使用 MIT License，见 [LICENSE](LICENSE)。第三方 UI 组件另有各自许可证，见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
+
 ## 第三方 UI 组件
 
 本项目 UI 优化使用/计划使用以下第三方组件与工具，完整许可证与来源见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)：
@@ -147,4 +151,4 @@ npm run detect:ui:check  # detector ratchet（只对新增 P0 失败）
 - 可访问性：`docs/A11Y-MANUAL-CHECKLIST.md`；OpenAPI 快照：`docs/openapi-workbench.json`（`PYTHONPATH=backend python scripts/export_openapi.py --check`）。
 - 视觉/设计系统说明与动效规范：`docs/DESIGN.md`；产品说明：`docs/PRODUCT.md`；最终交付报告：`docs/UI-OPTIMIZATION-REPORT.md`；审计证据：`docs/UI-AUDIT.md`；第三方文件级来源：`THIRD_PARTY_NOTICES.md`。
 - 深链示例：`?analysis_id=<id>&incident_id=<id>&node_id=<nod_id>&timeline_page=2&evidence=<alt_id>`；`/` 聚焦搜索、`Esc` 关闭证据、`j/k` 列表行导航。
-- 项目 LICENSE 与上游一致：上游当前未声明根 LICENSE（保留所有权利）；本分支不新增/更改项目级 LICENSE。第三方组件许可仍按其各自许可证执行。
+- 项目 LICENSE：MIT（见根 `LICENSE`；上游未声明，本分支补充，供 PR 评审）。

@@ -1,6 +1,50 @@
 {
-  "name": "traceback-soc", "private": true, "version": "0.1.0", "type": "module",
-  "scripts": {"dev": "vite --host 127.0.0.1", "build": "tsc -b && vite build", "typecheck": "tsc --noEmit", "test": "vitest", "test:e2e": "playwright test"},
-  "dependencies": {"react": "19.3.0", "react-dom": "19.3.0"},
-  "devDependencies": {"@types/react": "19.2.14", "@types/react-dom": "19.2.3", "typescript": "5.9.3", "vite": "8.3.3", "vitest": "5.0.3", "jsdom": "30.1.2", "@testing-library/react": "16.3.3", "@testing-library/jest-dom": "6.9.1", "@testing-library/user-event": "14.6.1", "@playwright/test": "1.58.2"}
+  "name": "traceback-soc",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "tsc -b && vite build",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:e2e:list": "playwright test --list",
+    "test:e2e": "playwright test",
+    "test:e2e:real": "TRACEBACK_REAL_DATA=1 playwright test --grep @real",
+    "test:e2e:visual": "playwright test e2e/visual.spec.ts",
+    "verify": "npm run typecheck && npm run test:run && npm run build && npm run check:bundle",
+    "detect:ui": "node ../scripts/ui_detector_ratchet.mjs",
+    "detect:ui:check": "node ../scripts/ui_detector_ratchet.mjs --check",
+    "check:bundle": "node ../scripts/check-bundle-budget.mjs"
+  },
+  "dependencies": {
+    "@base-ui/react": "1.9.0",
+    "class-variance-authority": "0.7.1",
+    "clsx": "2.1.1",
+    "lucide": "1.62.0",
+    "lucide-react": "1.62.0",
+    "morphicons": "2.0.2",
+    "motion": "14.7.1",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "react-use-measure": "2.1.7",
+    "sonner": "^2.0.8",
+    "tailwind-merge": "3.7.0"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.14.0",
+    "@playwright/test": "1.58.2",
+    "@tailwindcss/vite": "4.3.3",
+    "@testing-library/jest-dom": "6.9.1",
+    "@testing-library/react": "16.3.3",
+    "@testing-library/user-event": "14.6.1",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "jsdom": "30.1.2",
+    "tailwindcss": "4.3.3",
+    "typescript": "5.9.3",
+    "vite": "8.3.3",
+    "vitest": "5.0.3"
+  }
 }

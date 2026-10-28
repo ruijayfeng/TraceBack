@@ -26,3 +26,9 @@ node_modules/
 /frontend/playwright-report/
 /evaluation/outputs/
 *.log
+
+# UI optimization: project-level tooling binaries (re-downloaded on first run)
+.dsh/skills/impeccable/scripts/bin/
+
+# Local agent tooling (kept out of the upstream PR; see THIRD_PARTY_NOTICES.md)
+.dsh/

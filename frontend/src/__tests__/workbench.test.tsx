@@ -16,7 +16,13 @@ import App from '../App';
 import type {AlertDetail,Chain,EdgeDetail,Explanation,IncidentDetail as Detail,IncidentRow,Overview,Page,Report,SavedExplanation} from '../types/domain';
 
 const f = fixtureJSON as unknown as {analysisId:string;incidentId:string;rows:Page<IncidentRow>;chain:{analysis_id:string;chain:Chain;diagnostics_ref:string};detail:Detail;overview:Overview;alert:AlertDetail;edge:EdgeDetail;explanation:Explanation;saved:SavedExplanation};
-const filters = {page:1,kind:'all',sort:'time',severity:''};
+const filters = {page:1,pageSize:20,kind:'all',sort:'time',severity:'',q:'',entity:'',startTime:'',endTime:''};
+
+/** T103: AI generation now starts a job and polls it; tests mock that contract. */
+function mockExplainJob(result: Explanation) {
+  vi.spyOn(api,'startExplainJob').mockResolvedValue({job_id:'job_test',status:'queued'});
+  vi.spyOn(api,'explainJob').mockResolvedValue({job_id:'job_test',status:'completed',status_code:200,result,created_at:0,finished_at:1});
+}
 
 describe('Incident workbench',() => {
   it('shows production counts, entities, source, singleton and chain statuses',() => {
@@ -30,7 +36,36 @@ describe('Incident workbench',() => {
     render(<IncidentList analysisId={f.analysisId} filters={filters} revision={0} onFilters={change} onOpen={vi.fn()}/>);
     await screen.findByText('有向攻击链');fireEvent.change(screen.getByLabelText('事件类型'),{target:{value:'singleton'}});
     expect(change).toHaveBeenCalledWith({...filters,kind:'singleton'});fireEvent.click(screen.getByText('下一页'));expect(change).toHaveBeenCalledWith({...filters,page:2});
-    expect(api.incidents).toHaveBeenCalledWith(f.analysisId,1,'all','time','',expect.any(AbortSignal));
+    expect(api.incidents).toHaveBeenCalledWith(f.analysisId,1,'all','time','',20,'','','','',expect.any(AbortSignal));
+  });
+  it('filters the loaded page by search query and exposes clearable chips', async () => {
+    vi.spyOn(api,'incidents').mockResolvedValue(f.rows);const change=vi.fn();
+    const {container}=render(<IncidentList analysisId={f.analysisId} filters={{...filters,q:'synthetic-host'}} revision={0} onFilters={change} onOpen={vi.fn()}/>);
+    await screen.findByText(/匹配 1 条/);
+    expect(container.querySelectorAll('tbody tr')).toHaveLength(1);
+    fireEvent.click(screen.getByRole('button',{name:/搜索：synthetic-host/}));
+    expect(change).toHaveBeenCalledWith({...filters,q:'',page:1});
+  });
+  it('supports page size changes and row-level keyboard navigation', async () => {
+    vi.spyOn(api,'incidents').mockResolvedValue(f.rows);const change=vi.fn();const open=vi.fn();
+    const {container}=render(<IncidentList analysisId={f.analysisId} filters={filters} revision={0} onFilters={change} onOpen={open}/>);
+    await screen.findByText('查看详情',{exact:false});
+    fireEvent.change(screen.getByLabelText('每页数量'),{target:{value:'50'}});
+    expect(change).toHaveBeenCalledWith({...filters,pageSize:50,page:1});
+    const row=container.querySelector('tbody tr')!;
+    fireEvent.keyDown(row,{key:'Enter'});
+    expect(open).toHaveBeenCalledWith(f.incidentId);
+    fireEvent.click(row);
+    expect(open).toHaveBeenCalledTimes(2);
+  });
+  it('sends keyword, entity and UTC time bounds through the URL filter state', async () => {
+    vi.spyOn(api,'incidents').mockResolvedValue(f.rows);const change=vi.fn();
+    render(<IncidentList analysisId={f.analysisId} filters={filters} revision={0} onFilters={change} onOpen={vi.fn()}/>);
+    await screen.findByText('查看详情',{exact:false});
+    fireEvent.change(screen.getByLabelText('搜索实体'),{target:{value:'synthetic-host'}});
+    expect(change).toHaveBeenCalledWith({...filters,entity:'synthetic-host',page:1});
+    fireEvent.change(screen.getByLabelText('开始时间'),{target:{value:'2022-01-21T00:00:01'}});
+    expect(change).toHaveBeenCalledWith({...filters,startTime:'2022-01-21T00:00:01.000Z',page:1});
   });
   it('shows zero Incident as a valid empty state',async() => {vi.spyOn(api,'incidents').mockResolvedValue({items:[],page:1,page_size:20,total:0});render(<IncidentList analysisId={f.analysisId} filters={filters} revision={0} onFilters={vi.fn()} onOpen={vi.fn()}/>);expect(await screen.findByText('当前筛选下没有安全事件。')).toBeInTheDocument();});
   it('shows loading and errors without a blank page',async() => {vi.spyOn(api,'incidents').mockRejectedValue(new Error('snapshot_integrity_error'));render(<IncidentList analysisId={f.analysisId} filters={filters} revision={0} onFilters={vi.fn()} onOpen={vi.fn()}/>);expect(screen.getByText('正在读取安全事件列表…')).toBeInTheDocument();expect(await screen.findByRole('alert')).toHaveTextContent('snapshot_integrity_error');});
@@ -102,14 +137,14 @@ describe('Formal AI report and ATT&CK isolation',() => {
     vi.spyOn(api,'saved').mockResolvedValue(f.saved);render(<AIReport analysisId={f.analysisId} incidentId={f.incidentId} chain={f.chain.chain} onEvidence={vi.fn()} onSelect={vi.fn()} onGenerated={vi.fn()}/>);await screen.findByText('已保存报告');expect(screen.getByText('诊断信息 · 被拒绝内容不属于正式结论')).toBeInTheDocument();expect(screen.getByRole('button',{name:'导出 JSON'})).toBeInTheDocument();
   });
   it('allows singleton explanation and preserves validated deterministic fallback',async() => {
-    vi.spyOn(api,'saved').mockResolvedValue({...f.saved,state:'not_generated',result:null,read_origin:null});const result={...f.explanation,status:'unavailable',generation_status:'provider_unavailable',result_origin:'deterministic',degraded:true};vi.spyOn(api,'explain').mockResolvedValue(result);
+    vi.spyOn(api,'saved').mockResolvedValue({...f.saved,state:'not_generated',result:null,read_origin:null});const result={...f.explanation,status:'unavailable',generation_status:'provider_unavailable',result_origin:'deterministic',degraded:true};mockExplainJob(result);
     render(<AIReport analysisId={f.analysisId} incidentId={f.incidentId} chain={{...f.chain.chain,nodes:[f.chain.chain.nodes[0]],edges:[]}} onEvidence={vi.fn()} onSelect={vi.fn()} onGenerated={vi.fn()}/>);await screen.findByText('尚未生成研判。节点、告警与证据可独立查看。');fireEvent.click(screen.getByText('请求 AI 研判'));await screen.findByText('AI 不可用');expect(screen.getByText(/下方只展示已验证内容/)).toBeInTheDocument();expect(screen.getByText('安全事件摘要')).toBeInTheDocument();
   });
   it('shows partial rejection status without including rejected prose',async() => {
     vi.spyOn(api,'saved').mockResolvedValue({...f.saved,state:'partially_rejected',result:{...f.explanation,generation_status:'partially_rejected',degraded:true,rejected_claims:[{index:1,section:'summary',validation_errors:['unsupported_claim']}]}});render(<AIReport analysisId={f.analysisId} incidentId={f.incidentId} chain={f.chain.chain} onEvidence={vi.fn()} onSelect={vi.fn()} onGenerated={vi.fn()}/>);await screen.findByText('部分拒绝');expect(screen.getByText(/已拒绝 ≠ 已验证/)).toBeInTheDocument();
   });
   it('handles Explain errors without losing the retry button',async() => {
-    vi.spyOn(api,'saved').mockResolvedValue({...f.saved,state:'not_generated',result:null});vi.spyOn(api,'explain').mockRejectedValue(new Error('network_unavailable'));render(<AIReport analysisId={f.analysisId} incidentId={f.incidentId} chain={f.chain.chain} onEvidence={vi.fn()} onSelect={vi.fn()} onGenerated={vi.fn()}/>);await screen.findByText('尚未生成研判。节点、告警与证据可独立查看。');fireEvent.click(screen.getByText('请求 AI 研判'));expect(await screen.findByRole('alert')).toHaveTextContent('network_unavailable');expect(screen.getByText('请求 AI 研判')).toBeEnabled();
+    vi.spyOn(api,'saved').mockResolvedValue({...f.saved,state:'not_generated',result:null});vi.spyOn(api,'startExplainJob').mockRejectedValue(new Error('network_unavailable'));render(<AIReport analysisId={f.analysisId} incidentId={f.incidentId} chain={f.chain.chain} onEvidence={vi.fn()} onSelect={vi.fn()} onGenerated={vi.fn()}/>);await screen.findByText('尚未生成研判。节点、告警与证据可独立查看。');fireEvent.click(screen.getByText('请求 AI 研判'));expect(await screen.findByRole('alert')).toHaveTextContent('network_unavailable');expect(screen.getByText('请求 AI 研判')).toBeEnabled();
   });
 });
 
@@ -128,5 +163,73 @@ describe('URL scope and stale requests',() => {
   });
   it('aborts old Incident reads and refuses mixed snapshots',async() => {
     vi.spyOn(api,'incident').mockResolvedValue({...f.detail,analysis_id:'wrong'});vi.spyOn(api,'chain').mockResolvedValue(f.chain);vi.spyOn(api,'observations').mockResolvedValue({analysis_id:f.analysisId,incident_id:f.incidentId,representative_member_count:2,expanded_member_count:2,sources:[],fields:[]});render(<IncidentDetail analysisId={f.analysisId} incidentId={f.incidentId} onEvidence={vi.fn()} onBack={vi.fn()} onGenerated={vi.fn()}/>);expect(await screen.findByRole('alert')).toHaveTextContent('snapshot_scope_mismatch');
+  });
+});
+
+describe('Detail shell, deep evidence and AI generation states', () => {
+  it('uses the incident summary as the page title and exposes in-page navigation', async () => {
+    vi.spyOn(api,'incident').mockResolvedValue(f.detail);vi.spyOn(api,'chain').mockResolvedValue(f.chain);
+    vi.spyOn(api,'observations').mockResolvedValue({analysis_id:f.analysisId,incident_id:f.incidentId,representative_member_count:2,expanded_member_count:2,sources:['wazuh'],fields:[]});
+    vi.spyOn(api,'timeline').mockResolvedValue({items:[],page:1,page_size:20,total:0});
+    vi.spyOn(api,'saved').mockResolvedValue({...f.saved,state:'not_generated',result:null});
+    render(<IncidentDetail analysisId={f.analysisId} incidentId={f.incidentId} onEvidence={vi.fn()} onBack={vi.fn()} onGenerated={vi.fn()}/>);
+    expect(await screen.findByRole('heading',{name:f.detail.incident.summary ?? '关联聚合事件'})).toBeInTheDocument();
+    for(const label of ['概况','攻击链','证据','时间线','AI 研判']) expect(screen.getByRole('link',{name:label})).toHaveAttribute('href','#'+ (label==='概况'?'incident-overview':label==='攻击链'?'attack-chain':label==='证据'?'incident-evidence':label==='时间线'?'incident-timeline':'ai-report'));
+    expect(screen.getByText('攻击链完整')).toBeInTheDocument();
+  });
+  it('opens the evidence sheet as a dialog and closes it from the close button', async () => {
+    vi.spyOn(api,'alert').mockResolvedValue(f.alert);const close=vi.fn();
+    render(<EvidencePanel analysisId={f.analysisId} selection={{title:'节点 Evidence',objectId:f.chain.chain.nodes[0].node_id,alertIds:[f.alert.alert.alert_id]}} onClose={close}/>);
+    await screen.findByText('相关字段');
+    expect(screen.getByRole('dialog')).toHaveAttribute('data-slot','sheet-popup');
+    expect(screen.getByRole('listbox',{name:'支撑告警'})).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button',{name:'关闭证据'}));
+    expect(close).toHaveBeenCalled();
+  });
+  it('filters the support-alert picker and keeps one selected option', async () => {
+    vi.spyOn(api,'alert').mockResolvedValue(f.alert);
+    render(<EvidencePanel analysisId={f.analysisId} selection={{title:'边证据',objectId:f.edge.edge.edge_id,alertIds:['alt_first','alt_second']}} onClose={vi.fn()}/>);
+    await screen.findByText('相关字段');
+    expect(screen.getAllByRole('option')).toHaveLength(2);
+    expect(screen.getAllByRole('option').filter(option => option.getAttribute('aria-selected')==='true')).toHaveLength(1);
+    fireEvent.change(screen.getByLabelText('搜索支撑告警'),{target:{value:'second'}});
+    expect(screen.getAllByRole('option')).toHaveLength(1);
+  });
+  it('requires confirmation before overwriting a saved report', async () => {
+    vi.spyOn(api,'saved').mockResolvedValue(f.saved);vi.spyOn(api,'startExplainJob').mockResolvedValue({job_id:'job_test',status:'queued'});vi.spyOn(api,'explainJob').mockResolvedValue({job_id:'job_test',status:'completed',status_code:200,result:f.explanation,created_at:0,finished_at:1});const explain=vi.mocked(api.startExplainJob);
+    render(<AIReport analysisId={f.analysisId} incidentId={f.incidentId} chain={f.chain.chain} onEvidence={vi.fn()} onSelect={vi.fn()} onGenerated={vi.fn()}/>);
+    await screen.findByText('已保存报告');
+    fireEvent.click(screen.getByRole('button',{name:/重新请求 AI 研判/}));
+    expect(await screen.findByText('重新生成会覆盖已保存报告')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button',{name:'确认重新生成'}));
+    await waitFor(()=>expect(explain).toHaveBeenCalled());
+  });
+  it('cancels an in-flight generation without discarding the last verified report', async () => {
+    vi.spyOn(api,'saved').mockResolvedValue({...f.saved,state:'not_generated',result:null});
+    vi.spyOn(api,'startExplainJob').mockResolvedValue({job_id:'job_pending',status:'queued'});vi.spyOn(api,'explainJob').mockImplementation(()=>new Promise(()=>{}));vi.spyOn(api,'cancelExplainJob').mockResolvedValue({job_id:'job_pending',status:'cancelled',created_at:0,finished_at:1});
+    render(<AIReport analysisId={f.analysisId} incidentId={f.incidentId} chain={f.chain.chain} onEvidence={vi.fn()} onSelect={vi.fn()} onGenerated={vi.fn()}/>);
+    await screen.findByText('尚未生成研判。节点、告警与证据可独立查看。');
+    fireEvent.click(screen.getByRole('button',{name:/请求 AI 研判/}));
+    await screen.findByText(/正在生成，已等待/);
+    fireEvent.click(screen.getByRole('button',{name:'取消生成'}));
+    expect((await screen.findAllByText(/已取消生成/)).length).toBeGreaterThan(0);
+  });
+  it('collapses long claims and renders attack-path step numbers', () => {
+    const report=structuredClone(f.explanation.report_json!);
+    const long='长'.repeat(400);report.claims[0]={...report.claims[0],text:long};
+    report.summary[0]={...report.summary[0],claim_id:report.claims[0].claim_id};
+    report.attack_path=[{...report.summary[0],step:2,claim_id:report.claims[0].claim_id}];
+    report.has_directed_path=true;
+    const {container}=render(<ReportContent report={report} onEvidence={vi.fn()} onSelect={vi.fn()}/>);
+    expect(screen.getByText('步骤 2')).toBeInTheDocument();
+    expect(container.querySelector('.claim-text')?.classList.contains('clamped')).toBe(true);
+    fireEvent.click(screen.getAllByRole('button',{name:/展开全文/})[0]);
+    expect(container.querySelector('.claim-text')?.classList.contains('clamped')).toBe(false);
+  });
+  it('disables evidence navigation when a verified claim has zero references', () => {
+    const report=structuredClone(f.explanation.report_json!);
+    report.summary[0]={...report.summary[0],alert_refs:[],evidence_refs:[]};
+    render(<ReportContent report={report} onEvidence={vi.fn()} onSelect={vi.fn()}/>);
+    expect(screen.getByRole('button',{name:/查看陈述证据 · 0 引用/})).toBeDisabled();
   });
 });

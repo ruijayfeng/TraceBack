@@ -7,6 +7,10 @@ validated response for presentation after refresh or server restart.
 
 import json
 from pathlib import Path
+from threading import Lock, Thread
+from time import time
+from types import SimpleNamespace
+from uuid import uuid4
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import FileResponse, JSONResponse
@@ -55,7 +59,30 @@ class WorkbenchQueries:
             "config_hash": detail["config_hash"], "diagnostics_ref": detail["diagnostics_ref"],
             "manifest_ref": detail["manifest_ref"], "score_diagnostics": read_score_diagnostic(self.q, analysis_id)}
 
-    def incidents(self, analysis_id, page, page_size, kind="all", sort="time", severity=None):
+    def list_analyses(self):
+        """List ready frozen analyses for the demo/recent picker; newest first."""
+        base = self.q.root / "data" / "processed"
+        items = []
+        if base.is_dir():
+            for child in sorted(base.iterdir()):
+                if not child.is_dir() or not (child / "run.json").is_file():
+                    continue
+                try:
+                    detail = self.q.analysis(child.name)
+                except QueryError:
+                    continue
+                if detail.get("record") is None or detail.get("status") not in {"completed", "incomplete"}:
+                    continue
+                counts = detail.get("counts", {})
+                items.append({"analysis_id": detail["analysis_id"], "status": detail["status"],
+                    "is_complete": bool(detail.get("is_complete")), "created_at": detail.get("created_at"),
+                    "created_count": counts.get("input_count", 0),
+                    "incident_count": counts.get("incident_count", 0)})
+        items.sort(key=lambda item: item.get("created_at") or "", reverse=True)
+        return {"items": items[:20]}
+
+    def incidents(self, analysis_id, page, page_size, kind="all", sort="time", severity=None, q=None, entity=None,
+                  start_time=None, end_time=None):
         store = self.q.ready(analysis_id)
         reports = self.reports.index(analysis_id)
         clauses, bindings = [], []
@@ -72,6 +99,22 @@ class WorkbenchQueries:
         if severity is not None:
             clauses.append("json_extract_string(payload, '$.severity') = ?")
             bindings.append(severity)
+        if q is not None:
+            # Substring search over stable IDs, summary and other payload text.
+            clauses.append("(contains(lower(CAST(object_id AS VARCHAR)), lower(?)) OR contains(lower(CAST(payload AS VARCHAR)), lower(?)))")
+            bindings.extend([q, q])
+        if entity is not None:
+            clauses.append("list_has_any(CAST(json_extract(payload, '$.entity_ids') AS VARCHAR[]), "
+                "(SELECT list(json_extract_string(payload, '$.entity_id')) FROM read_parquet(?) "
+                "WHERE contains(lower(coalesce(json_extract_string(payload, '$.value'), '')), lower(?)) "
+                "OR contains(lower(coalesce(json_extract_string(payload, '$.display_value'), '')), lower(?))))")
+            bindings.extend([self.q.table(store, "entities"), entity, entity])
+        if start_time is not None:
+            clauses.append("epoch(event_time) >= epoch(strptime(?, '%Y-%m-%dT%H:%M:%S.%fZ'))")
+            bindings.append(start_time)
+        if end_time is not None:
+            clauses.append("epoch(event_time) < epoch(strptime(?, '%Y-%m-%dT%H:%M:%S.%fZ'))")
+            bindings.append(end_time)
         where = " WHERE " + " AND ".join(clauses) if clauses else ""
         order = {"time": "event_time DESC", "alert_count": "alert_count DESC, event_time DESC",
             "node_count": "node_count DESC, event_time DESC"}[sort] + ", object_id ASC"
@@ -111,13 +154,110 @@ def install_workbench(app, *, root=None, host_ui=True):
             raise HTTPException(400, "unknown_query_parameter")
         return projection.overview(analysis_id)
 
+    @router.get("/analyses")
+    def list_analyses(request: Request):
+        if request.query_params:
+            raise HTTPException(400, "unknown_query_parameter")
+        return projection.list_analyses()
+
     @router.get("/analyses/{analysis_id}/workbench")
     def workbench(analysis_id: AnalysisID, request: Request):
-        p = params(request, {"kind", "sort", "severity"}, paginated=True)
+        p = params(request, {"kind", "sort", "severity", "q", "entity", "start_time", "end_time"}, paginated=True)
         kind, sort = p.get("kind", "all"), p.get("sort", "time")
         if kind not in {"all", "singleton", "multi_alert", "has_chain", "ai_explained", "ai_pending"} or sort not in {"time", "alert_count", "node_count"}:
             raise HTTPException(400, "invalid_workbench_filter")
-        return projection.incidents(analysis_id, p["page"], p["page_size"], kind, sort, p.get("severity"))
+        q, entity = p.get("q"), p.get("entity")
+        if (q is not None and (not q.strip() or len(q) > 200)) or (entity is not None and (not entity.strip() or len(entity) > 200)):
+            raise HTTPException(400, "invalid_workbench_filter")
+        return projection.incidents(analysis_id, p["page"], p["page_size"], kind, sort, p.get("severity"),
+                                   q.strip() if q else None, entity.strip() if entity else None,
+                                   p.get("start_time"), p.get("end_time"))
+
+    # T103: optional async Explain job API for slow providers. The synchronous
+    # endpoint stays the default; jobs never mutate snapshots beyond the same
+    # validated presentation report the sync path saves. Cancellation is
+    # cooperative: the provider call may finish, but its result is discarded.
+    jobs = app.state.ai_jobs = {}
+    jobs_lock = app.state.ai_jobs_lock = Lock()
+
+    def prune_jobs():
+        now = time()
+        with jobs_lock:
+            finished = [(job_id, job) for job_id, job in jobs.items() if job["status"] in {"completed", "failed", "cancelled"}]
+            for job_id, job in finished:
+                if now - (job.get("finished_at") or now) > 3600:
+                    jobs.pop(job_id, None)
+            while len(jobs) > 100:
+                oldest = min(jobs, key=lambda key: jobs[key]["created_at"])
+                jobs.pop(oldest, None)
+
+    def run_job(job_id, analysis_id, incident_id):
+        with jobs_lock:
+            job = jobs.get(job_id)
+            if not job or job["status"] == "cancelled":
+                return
+            job["status"] = "running"
+        try:
+            result = explain_incident(SimpleNamespace(app=app), analysis_id, incident_id)
+            with jobs_lock:
+                job = jobs.get(job_id)
+                if not job or job["status"] == "cancelled":
+                    return
+            if hasattr(result, "model_dump"):
+                payload, status_code = result.model_dump(mode="json"), 200
+                reports.save(result)
+            else:
+                payload, status_code = json.loads(result.body), result.status_code
+            with jobs_lock:
+                job = jobs.get(job_id)
+                if not job or job["status"] == "cancelled":
+                    return
+                job.update(status="completed", status_code=status_code, result=payload, finished_at=time())
+        except Exception as exc:  # provider/query errors stay inside the job
+            with jobs_lock:
+                job = jobs.get(job_id)
+                if job and job["status"] != "cancelled":
+                    job.update(status="failed", error=type(exc).__name__, finished_at=time())
+
+    @router.post("/incidents/{incident_id}/explain-job", status_code=202)
+    def start_explain_job(incident_id: IncidentID, request: Request):
+        p = params(request)
+        analysis_id = p["analysis_id"]
+        # Fail fast for unknown incidents instead of surfacing it inside the job.
+        q.get(analysis_id, "incidents", incident_id)
+        prune_jobs()
+        job_id = uuid4().hex
+        with jobs_lock:
+            jobs[job_id] = {"job_id": job_id, "analysis_id": analysis_id, "incident_id": incident_id,
+                            "status": "queued", "created_at": time(), "finished_at": None}
+        Thread(target=run_job, args=(job_id, analysis_id, incident_id), daemon=True).start()
+        return {"job_id": job_id, "status": "queued"}
+
+    @router.get("/ai-jobs/{job_id}")
+    def explain_job(job_id: str, request: Request):
+        if request.query_params:
+            raise HTTPException(400, "unknown_query_parameter")
+        if not job_id.isalnum() or len(job_id) > 64:
+            raise HTTPException(400, "invalid_job_id")
+        with jobs_lock:
+            job = jobs.get(job_id)
+            if job is None:
+                raise HTTPException(404, "job_not_found")
+            return {key: job.get(key) for key in ("job_id", "status", "created_at", "finished_at", "status_code", "result", "error")}
+
+    @router.delete("/ai-jobs/{job_id}")
+    def cancel_explain_job(job_id: str, request: Request):
+        if request.query_params:
+            raise HTTPException(400, "unknown_query_parameter")
+        if not job_id.isalnum() or len(job_id) > 64:
+            raise HTTPException(400, "invalid_job_id")
+        with jobs_lock:
+            job = jobs.get(job_id)
+            if job is None:
+                raise HTTPException(404, "job_not_found")
+            if job["status"] in {"queued", "running"}:
+                job.update(status="cancelled", finished_at=time())
+        return {key: job.get(key) for key in ("job_id", "status", "created_at", "finished_at")}
 
     @router.get("/analyses/{analysis_id}/score-diagnostics")
     def score_diagnostics(analysis_id: AnalysisID, request: Request):

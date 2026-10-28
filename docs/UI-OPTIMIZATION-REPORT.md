@@ -1,0 +1,82 @@
+# TraceBack UI 优化 · 最终交付报告
+
+日期：2026-10-28 · 分支：`TraceBack/ui/optimization`（相对 `f2e640b`，**未 commit**）· 环境：macOS / Chrome / Node 26 / Python 3.11
+
+## 一、结果总览
+
+| 门禁 | 命令 | 结果 |
+|---|---|---|
+| TypeScript | `npm run typecheck` | ✅ 0 error |
+| 单元测试 | `npm run test:run` | ✅ 7 files / **52 tests** |
+| 生产构建 | `npm run build` | ✅ built，JS gzip **136.75KB** / CSS gzip **15.21KB** |
+| Bundle 预算 | `npm run check:bundle` | ✅ PASS（JS ≤160KB、CSS ≤20KB） |
+| 自包含 E2E | `npm run test:e2e` | ✅ **20 passed / 3 skipped**（@real 无数据集时 skip），46.6s |
+| 视觉基线 | `npm run test:e2e:visual` | ✅ 4 宽度 × 4 表面 = **16 张**，基线已用最终代码刷新 |
+| Detector | `npm run detect:ui:check` | ✅ 当前 **0 findings**，PASS / no drift |
+| 可访问性 | axe-core（1440/390，工作台/详情/欢迎/抽屉） | ✅ **0 violations** |
+| 后端（改动相关） | `PYTHONPATH=backend pytest tests/test_workbench.py tests/test_api.py` | ✅ **62 passed** |
+| 响应式 | 1440/1024/900/768/390 工作台/详情/抽屉 | ✅ 页面级横向溢出 = 0 |
+
+## 二、交付内容
+
+### G1 测试/CI 门禁（T09–T14）
+- `e2e/workbench.spec.ts` 修复收集：移除缺失数据集静态 import，真实断言保留在 `@real` + `TRACEBACK_REAL_DATA=1` 双 gate。
+- `e2e/demo.browser.spec.ts` 从 `src/__tests__` 迁入 e2e；`e2e/support/fixtures.ts` 全 API route 拦截，默认套件不依赖后端/外网。
+- `playwright.config.ts`：webServer 4174、本机 Chrome、reducedMotion；`package.json` scripts `test:run/test:e2e:list/test:e2e/test:e2e:real/test:e2e:visual/verify/detect:ui/check:bundle`。
+- `e2e/a11y-smoke.spec.ts`：768/390 无溢出 + 证据 Sheet dialog 语义/焦点/Esc/焦点恢复/scroll lock。
+- `e2e/visual.spec.ts`：16 张确定性截图 → `design-libs/baseline/visual/`（工作区交付物）。
+- `scripts/ui_detector_ratchet.mjs` + `baseline/detector/source-baseline.json`：源码 detector ratchet。
+
+### G2 设计基础（T15–T29）
+`theme.css` token（品牌 navy/teal、语义色、chart/code/sidebar、11–28px 字号、系统字体栈、对比度 ≥4.5:1、统一 focus、reduced-motion、hover gating）；Lucide + `TraceIcon`；`CopyId`；URL 路由/标题/焦点/nav/skip link；`lib/errors.ts` 错误码映射 + `ErrorState`；`useResource` reload/keepPrevious；`Skeleton/EmptyState`；Sonner Toast；DESIGN/PRODUCT 文档；THIRD_PARTY_NOTICES。**未声明未加载的 Inter**，无外部字体请求。
+
+### G3–G5 Shell / Dashboard / 事件列表（T30–T50）
+- 侧栏 nav + aria-current、≤900 原生 dialog 移动导航、sticky 顶栏（粘贴/复制/当前分析 chip）、断点重排消灭 768 的 +10px 溢出。
+- KPI 去任意高亮；分布条 `role=meter` + 百分比 + 空态；评分诊断折叠；`查看全部事件` CTA。
+- coss Table 迁移；状态/summary/实体 JSON 可读化；关键词/实体/UTC 时间筛选（服务端）；URL schema clamp；filter chips；分页 + page_size（20/50/100）；行键盘 Enter/Space；≤640 卡片布局；CSV 导出。
+
+### G6–G8 详情 / 攻击链 / 时间线（T51–T66）
+- h1=incident summary + 类型/严重度/状态/攻击链状态 badge；页内 sticky TOC + scrollspy；三接口分别报错；观测字段可读化。
+- 攻击链：图例、节点置信条、边标签、pan/wheel/按钮缩放、移动端纵向布局、选中滚动+焦点+aria-live、方向键/Home/End、边列表等价路径。
+- 时间线：全事件 UTC 刻度尺、缩放、全范围定位、24px marker、微秒级表格。
+
+### G9 证据抽屉（T67–T73）
+coss Sheet/Dialog（Base UI 1.9 适配版）：桌面右 580px / 移动底部 85dvh；role=dialog、焦点陷阱、Esc、scroll lock、焦点恢复；面包屑 + 对象类型 + 完整 ID 复制；可搜索支撑告警（来源/时间/规则）；指针/字段来源/实体/raw_alert 惰性读取；旧 backdrop 已移除。
+
+### G10 AI 报告（T74–T84）
+AI 入口/锚点；重新生成二次确认；生成进度/取消/45s 超时/失败重试；已保存报告；长文本 clamp+展开；攻击过程步骤编号；ATT&CK 已验证/未生成区分；0 引用证据禁用；建议 claim 关联；Markdown 预览 + JSON/MD 导出 + Toast；诊断/被拒绝内容折叠。T83 rare `ai-status` 评估后不接入（体积/动效面）。
+
+### G11 交互与性能（T85–T91）
+`node_id/edge_id/evidence/timeline_page` 深链（刷新/分享/前进后退）；返回队列滚动恢复；最近分析（后端 `/analyses` + localStorage）；`/`、Esc、j/k；CSV/print；JsonView 惰性序列化；错误边界按视图 key 复位 + 失败态标题；bundle 预算门禁。
+
+### G12 移动端/可访问性/极值（T92–T99）
+390 全量走查（工作台/详情/图/时间线/AI/抽屉/导航）；axe 0；300 行 + 5000 字 + 大 JSON 压测；impeccable 0；动效仅 5 类表面 + reduced-motion；全量回归；文档收口；本报告。
+
+### G13 后端依赖（T100–T104）
+- `/workbench`：`q`、`entity`、`start_time`、`end_time`、`page_size` 服务端过滤（SQL 用 `contains(lower(...))` 与 `epoch(event_time)` 比较）。
+- `GET /api/v1/analyses`：ready-only 列表（created_at 倒序，最多 20）。
+- 前端同步接入，URL/输入/分页全链路；后端测试覆盖。
+- T103 异步 AI job：已落地 `POST /incidents/{id}/explain-job` + `GET/DELETE /api/v1/ai-jobs/{id}`；前端 AIReport 改为 600ms 轮询 + 取消 + 45s 超时，后端测试覆盖完成/持久化/取消不落盘。
+
+## 三、如何查看
+
+- 前端开发：`cd TraceBack/frontend && TRACEBACK_API_URL=http://127.0.0.1:8001 npm run dev`（当前 5173/8001 已运行）。
+- Demo 快照：`analysis_id=ana_c6944bba5b25d54bf0edb75ac7f264f06be2f07fd1e3ca96a5437ce9f9bf4dea`。
+- 设计规范：[DESIGN.md](../TraceBack/docs/DESIGN.md)；产品说明：[PRODUCT.md](PRODUCT.md)。
+- 审计细节：[UI-AUDIT.md](UI-AUDIT.md)；执行顺序与状态：`design-libs/EXECUTION-ORDER.md`（工作区交付物）。
+- 最终截图：`design-libs/baseline/final/`（工作区交付物）（1440/768/390 工作台、详情、AI、抽屉）；视觉回归基线：`design-libs/baseline/visual/<width>/`（工作区交付物）。
+
+## 四、未提交 / 回滚
+
+- 53 个文件变更（28 tracked changed + 25 untracked），未 commit。建议评审后再提交。
+- 回滚：`git checkout -- .` + 删除新增文件；或直接切回 `main`。项目级 skill `.dsh/` 可整体删除（19MB，其中引擎已 gitignore）。
+- 后端改动仅 `backend/app/api/workbench.py` + `backend/tests/test_workbench.py`，可单独 revert。
+
+## 五、待负责人决策 / 已知限制
+
+1. **项目 LICENSE**：仓库仍无根 LICENSE；需 owner 决定（在决定前保持“保留所有权利”）。
+2. **coss registry MIT 口径**：`apps/ui/registry` 声明 MIT，但公开发布前建议向 coss.com 书面确认；未使用 AGPL 的 `packages/ui`。
+3. **rare-ui `ai-status`**：保留源文件作可选试点，未接入；若接入需页面/README 可见 rareui.com 链接。
+4. **真实 45k 数据集 E2E**：仍以 `TRACEBACK_REAL_DATA=1` + 数据文件 gate；本机无该数据集，3 个 @real skipped。真实快照下建议再跑一次。
+5. **T103 异步 job**：已实现 job/poll/cancel；同步 `/explain` 保留兼容。
+6. 视觉基线是 2026-10-28 当前代码；后续 UI 改动需重跑 `npm run test:e2e:visual`。

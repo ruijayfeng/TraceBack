@@ -1,0 +1,235 @@
+/*
+ * TraceBack design foundation.
+ * Layer order matters: legacy app.css wins over base, utilities win over legacy.
+ */
+@layer theme, base, components, legacy, utilities;
+@import "tailwindcss";
+
+/* coss.com/ui components rely on a class-based dark mode plus an inverse variant. */
+@custom-variant dark (&:is(.dark *));
+@custom-variant not-dark (&:where(:not(.dark *)));
+
+:root {
+  color-scheme: light;
+
+  /* TraceBack identity ---------------------------------------------------- */
+  --tb-navy-950: #0b2230;
+  --tb-navy-900: #112d3e;
+  --tb-navy-800: #17394c;
+  --tb-navy-700: #204759;
+  --tb-teal-700: #185976;
+  --tb-teal-600: #236a90;
+  --tb-teal-500: #2f7896;
+  --tb-teal-200: #d7e8ef;
+  --tb-paper: #f3f6f8;
+  --tb-surface: #ffffff;
+
+  /* Typography ------------------------------------------------------------ */
+  /* System stack only: no fake Inter declaration and no font download. */
+  --tb-font-sans: ui-sans-serif, system-ui, -apple-system, "SF Pro Text",
+    "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  --tb-font-mono: ui-monospace, "SF Mono", "Cascadia Code", "JetBrains Mono",
+    Consolas, "Liberation Mono", monospace;
+  --tb-text-2xs: 0.6875rem; /* 11px, smallest functional text */
+  --tb-text-xs: 0.75rem; /* 12px, dense data */
+  --tb-text-sm: 0.8125rem; /* 13px, secondary UI */
+  --tb-text-base: 0.875rem; /* 14px, body */
+  --tb-text-md: 1rem; /* 16px, emphasis */
+  --tb-text-lg: 1.125rem; /* 18px, section titles */
+  --tb-text-xl: 1.25rem; /* 20px */
+  --tb-text-2xl: 1.75rem; /* 28px, page titles */
+  --tb-leading-tight: 1.3;
+  --tb-leading-normal: 1.5;
+  --tb-leading-relaxed: 1.7;
+  --tb-measure: 72ch;
+
+  /* Text colors (all >= 4.5:1 on paper/surface) -------------------------- */
+  --tb-text-primary: #253440;
+  --tb-text-secondary: #526a7a;
+  --tb-text-muted: #5b7384;
+  --tb-text-subtle: #5b7384;
+  --tb-text-link: #185976;
+  --tb-text-inverse: #ffffff;
+
+  /* Semantic tokens consumed by coss.com/ui components ------------------- */
+  --radius: 6px;
+  --background: #f3f6f8;
+  --foreground: #253440;
+  --card: #ffffff;
+  --card-foreground: #253440;
+  --popover: #ffffff;
+  --popover-foreground: #253440;
+  --primary: #185976;
+  --primary-foreground: #ffffff;
+  --secondary: #eef5f8;
+  --secondary-foreground: #29475a;
+  --muted: #f4f7f9;
+  --muted-foreground: #5b7384;
+  --accent: #eef5f8;
+  --accent-foreground: #185976;
+  --destructive: #a44838;
+  --destructive-foreground: #8f3325;
+  --border: #dce7ed;
+  --input: #cdd9e1;
+  --ring: #2f7896;
+  --success: #287452;
+  --success-foreground: #246b4b;
+  --warning: #956313;
+  --warning-foreground: #8a5a10;
+  --info: #236a90;
+  --info-foreground: #1e5f82;
+
+  /* coss registry tokens: charts, code blocks, sidebar ------------------- */
+  --chart-1: #2f7d95;
+  --chart-2: #4d9abb;
+  --chart-3: #287452;
+  --chart-4: #956313;
+  --chart-5: #a44838;
+  --code: #f4f7f9;
+  --code-foreground: #253440;
+  --code-highlight: #e3edf2;
+  --sidebar: #112d3e;
+  --sidebar-foreground: #cadbe7;
+  --sidebar-primary: #204759;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #204759;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #1d3d50;
+  --sidebar-ring: #7fc3d6;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-code: var(--code);
+  --color-code-foreground: var(--code-foreground);
+  --color-code-highlight: var(--code-highlight);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --font-sans: var(--tb-font-sans);
+  --font-heading: var(--tb-font-sans);
+  --font-mono: var(--tb-font-mono);
+  --text-2xs: 0.6875rem;
+  --text-2xs--line-height: 1.45;
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+    outline-color: var(--ring);
+  }
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+  body {
+    position: relative;
+    margin: 0;
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: var(--tb-font-sans);
+    font-size: var(--tb-text-base);
+    line-height: var(--tb-leading-normal);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  code,
+  kbd,
+  samp,
+  pre {
+    font-family: var(--tb-font-mono);
+  }
+  .app {
+    isolation: isolate;
+  }
+  /* One focus treatment for the whole product. Keep it visible on paper. */
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  ::selection {
+    background: var(--tb-teal-200);
+    color: var(--tb-navy-950);
+  }
+}
+
+/* Motion is decorative only: remove it when the user asks for reduced motion. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+.dark {
+  --background: #0f2230;
+  --foreground: #e6eef3;
+  --card: #16303f;
+  --card-foreground: #e6eef3;
+  --popover: #16303f;
+  --popover-foreground: #e6eef3;
+  --muted: #1c3a4a;
+  --muted-foreground: #a8c0cf;
+  --accent: #1c3a4a;
+  --accent-foreground: #e6eef3;
+  --border: #274757;
+  --input: #2e5265;
+  --ring: #7fc3d6;
+  --destructive-foreground: var(--color-red-400);
+  --info: var(--color-blue-500);
+  --info-foreground: var(--color-blue-400);
+  --success: var(--color-emerald-500);
+  --success-foreground: var(--color-emerald-400);
+  --warning: var(--color-amber-500);
+  --warning-foreground: var(--color-amber-400);
+  --chart-1: #6cb6c9;
+  --chart-2: #8fd0e0;
+  --chart-3: #6bbf98;
+  --chart-4: #d9b369;
+  --chart-5: #e08b7c;
+  --code: #122735;
+  --code-foreground: #e6eef3;
+  --code-highlight: #1b3948;
+}

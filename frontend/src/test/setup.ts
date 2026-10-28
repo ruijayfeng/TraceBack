@@ -4,3 +4,12 @@ import {afterEach, vi} from 'vitest';
 afterEach(() => {cleanup();vi.restoreAllMocks();vi.unstubAllGlobals();});
 Element.prototype.scrollIntoView = () => {};
 window.scrollTo = () => {};
+// jsdom does not implement ResizeObserver; needed by ai-status/react-use-measure and future components.
+class ResizeObserverMock {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+if (!('ResizeObserver' in globalThis)) {
+  globalThis.ResizeObserver = ResizeObserverMock as unknown as typeof ResizeObserver;
+}

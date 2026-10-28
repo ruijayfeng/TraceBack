@@ -116,3 +116,34 @@ TraceBack/
 - [验证命令](docs/STARTUP.md#验证命令)：后端测试、前端检查和浏览器验收。
 - [结果与能力边界](docs/STARTUP.md#数据结果和边界)：历史结果、AI 配置与评测限制。
 - [数据契约](docs/DATA_CONTRACT.md)、[算法配置](docs/ALGORITHM_CONFIG.md)。
+
+## 第三方 UI 组件
+
+本项目 UI 优化使用/计划使用以下第三方组件与工具，完整许可证与来源见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)：
+
+- [coss.com/ui](https://github.com/cosscom/ui)（Cal.com Design System，registry 路径，MIT）
+- [Rare UI](https://rareui.com)（`ai-status` 组件，MIT + Commons Clause + Attribution）
+- [Lucide](https://lucide.dev) / [morphicons](https://morphicons.com) / [Tailwind CSS](https://tailwindcss.com) / [Base UI](https://base-ui.com)
+
+Rare UI 组件使用需保留其版权与许可声明；Rare UI 名称、logo 与站点设计不在组件许可证范围内。
+
+## UI 开发与验收（`ui/optimization`）
+
+设计规范见 [docs/DESIGN.md](docs/DESIGN.md)，产品/信息架构见 [docs/PRODUCT.md](docs/PRODUCT.md)。
+
+```bash
+cd frontend
+npm run typecheck        # TypeScript
+npm run test:run         # Vitest（当前 52 tests）
+npm run test:e2e:list    # Playwright 收集检查（无需后端）
+npm run test:e2e         # 自包含 Playwright（route 拦截 fixture，端口 4174）
+npm run test:e2e:visual  # 视觉基线截图 → ../design-libs/baseline/visual/
+npm run verify           # typecheck + Vitest + build
+npm run detect:ui        # Impeccable 设计 detector 源码扫描（信息性）
+npm run detect:ui:check  # detector ratchet（只对新增 P0 失败）
+```
+
+- 项目级设计技能（本地可选，未纳入版本库）：`TraceBack/.dsh/skills/`（Impeccable 4.8.0 + emilkowalski 13 个技能）。
+- 视觉/设计系统说明与动效规范：`docs/DESIGN.md`；产品说明：`docs/PRODUCT.md`；最终交付报告：`docs/UI-OPTIMIZATION-REPORT.md`；审计证据：`docs/UI-AUDIT.md`；第三方文件级来源：`THIRD_PARTY_NOTICES.md`。
+- 深链示例：`?analysis_id=<id>&incident_id=<id>&node_id=<nod_id>&timeline_page=2&evidence=<alt_id>`；`/` 聚焦搜索、`Esc` 关闭证据、`j/k` 列表行导航。
+- 项目 LICENSE 仍待仓库负责人决定；在决定前保持“保留所有权利”。第三方组件许可不因项目 LICENSE 未定而失效。

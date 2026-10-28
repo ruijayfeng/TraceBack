@@ -7,14 +7,14 @@
 | 门禁 | 命令 | 结果 |
 |---|---|---|
 | TypeScript | `npm run typecheck` | ✅ 0 error |
-| 单元测试 | `npm run test:run` | ✅ 7 files / **52 tests** |
-| 生产构建 | `npm run build` | ✅ built，JS gzip **136.75KB** / CSS gzip **15.21KB** |
+| 单元测试 | `npm run test:run` | ✅ 8 files / **60 tests** |
+| 生产构建 | `npm run build` | ✅ built，JS gzip **138.62KB** / CSS gzip **16.02KB** |
 | Bundle 预算 | `npm run check:bundle` | ✅ PASS（JS ≤160KB、CSS ≤20KB） |
-| 自包含 E2E | `npm run test:e2e` | ✅ **20 passed / 3 skipped**（@real 无数据集时 skip），46.6s |
+| 自包含 E2E | `npm run test:e2e` | ✅ **25 passed / 3 skipped**（含 visual/aria/forced-colors/zoom；@real 无数据集时 skip） |
 | 视觉基线 | `npm run test:e2e:visual` | ✅ 4 宽度 × 4 表面 = **16 张**，基线已用最终代码刷新 |
 | Detector | `npm run detect:ui:check` | ✅ 当前 **0 findings**，PASS / no drift |
 | 可访问性 | axe-core（1440/390，工作台/详情/欢迎/抽屉） | ✅ **0 violations** |
-| 后端（改动相关） | `PYTHONPATH=backend pytest tests/test_workbench.py tests/test_api.py` | ✅ **62 passed** |
+| 后端（改动相关） | `pytest tests/test_workbench.py` / `tests/test_api.py` | ✅ **22 + 61 passed**（全量套件受仓库缺失 data/outputs 工件限制） |
 | 响应式 | 1440/1024/900/768/390 工作台/详情/抽屉 | ✅ 页面级横向溢出 = 0 |
 
 ## 二、交付内容

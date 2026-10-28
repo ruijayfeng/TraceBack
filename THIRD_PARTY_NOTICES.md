@@ -39,7 +39,7 @@ TraceBack 的 UI 优化使用/复制以下第三方开源项目。分发本项�
 ### rare-ui
 - 来源：https://github.com/swamimalode07/rare-ui；复制 `ai-status.tsx` 到 `frontend/src/components/ui/`。
 - Copyright (c) 2026 Swami Malode；`rare-ui.LICENSE` 为完整许可证（MIT + Commons Clause v1.0 + Attribution）。
-- 当前状态：**未接入页面**。T83 评估后决定不进入主路径（组件 + motion 体积/动效表面与“数据不装饰动画”原则冲突）；保留源文件作为可选试点，若接入必须在页面/README/About 提供指向 https://rareui.com 的可见链接。
+- 当前状态：**已接入 AI 研判生成态**（仅 `generating` 一个表面），通过 React.lazy 单独打包为按需 chunk（约 49KB gzip），不进入首屏；`prefers-reduced-motion` 下由组件自身 + 全局样式降级。README/本文件提供 https://rareui.com 可见链接。
 - 使用要求：保留版权/许可/来源头；不得单独销售、再许可或再分发组件本身。
 
 ## 备注

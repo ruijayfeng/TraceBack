@@ -1,9 +1,11 @@
 import {originLabel, severityLabel, statusLabel, entityLabel} from '../../lib/displayLabels';
 import {FileJson, FileText, RefreshCw, Sparkles, StopCircle} from 'lucide-react';
-import {useEffect, useRef, useState} from 'react';
+import {lazy, Suspense, useEffect, useRef, useState} from 'react';
 import {api} from '../../api/client';
 import type {AIState, Chain, EvidenceSelection, Explanation, Finding, Report, Technique} from '../../types/domain';
 import {AIStatus, JsonView, Notice, Section, StableId} from '../common';
+// rare-ui ai-status pulls in Motion; load it only while a generation is in flight.
+const AiStatus = lazy(() => import('../ui/ai-status'));
 import {Dialog, DialogClose, DialogDescription, DialogFooter, DialogHeader, DialogPopup, DialogTitle} from '../ui/dialog';
 import {EmptyState} from '../ui/empty-state';
 import {ErrorState} from '../ui/error-state';
@@ -122,6 +124,7 @@ export function AIReport({analysisId, incidentId, chain, onEvidence, onSelect, o
       const started = await api.startExplainJob(analysisId, incidentId, c.signal);
       if (c.signal.aborted) return;
       jobIdRef.current = started.job_id;
+      const startedAt = Date.now();
       let value: Explanation | null = null;
       while (!c.signal.aborted) {
         await new Promise(resolve => window.setTimeout(resolve, 600));
@@ -134,6 +137,8 @@ export function AIReport({analysisId, incidentId, chain, onEvidence, onSelect, o
         }
         if (job.status === 'failed') throw new Error(job.error ?? 'request_failed');
         value = job.result ?? null;
+        // Keep the progress surface visible for at least ~1s to avoid a flash.
+        if (Date.now() - startedAt < 900) await new Promise(resolve => window.setTimeout(resolve, 900 - (Date.now() - startedAt)));
         break;
       }
       window.clearTimeout(timeoutRef.current);
@@ -150,6 +155,11 @@ export function AIReport({analysisId, incidentId, chain, onEvidence, onSelect, o
     }
   }
   const report = verifiedReport(result, analysisId, incidentId, chain.chain_id);
+  // Prefetch the lazy animated status chunk so the first generating state does
+  // not flash a fallback while Motion loads.
+  useEffect(() => {
+    if (!result) void import('../ui/ai-status');
+  }, [result]);
   function download(kind: 'json' | 'md') {
     if (!report || !result) return;
     try {
@@ -164,7 +174,7 @@ export function AIReport({analysisId, incidentId, chain, onEvidence, onSelect, o
       {generating && <button onClick={cancelGenerate} type="button"><TraceIcon icon={StopCircle} size={14}/>取消生成</button>}
       {report && <><button onClick={() => download('json')} type="button"><TraceIcon icon={FileJson} size={14}/>导出 JSON</button><button onClick={() => download('md')} type="button"><TraceIcon icon={FileText} size={14}/>导出 Markdown</button></>}
     </div>
-    {generating && <p aria-live="polite" className="muted" role="status">正在生成，已等待 {elapsed} 秒。超过 {GENERATION_TIMEOUT_MS / 1000} 秒会超时并保留上次报告。可以取消。</p>}
+    {generating && <div className="ai-generating-row"><Suspense fallback={<span className="muted">正在生成…</span>}><AiStatus className="ai-status-inline" detail={`${GENERATION_TIMEOUT_MS / 1000}s 超时`} elapsed={elapsed} label="正在生成…" state="thinking" /></Suspense><span className="muted">已等待 {elapsed} 秒；可取消，超时会保留上次报告。</span></div>}
     {loading && <TextSkeleton lines={3}/>}
     {loading && <Notice kind="loading">正在读取已保存的正式报告…</Notice>}
     {error && <ErrorState error={error} onRetry={state === 'failed' ? requestGenerate : retrySaved} scope="AI 研判报告"/>}

@@ -211,7 +211,7 @@ describe('Detail shell, deep evidence and AI generation states', () => {
     render(<AIReport analysisId={f.analysisId} incidentId={f.incidentId} chain={f.chain.chain} onEvidence={vi.fn()} onSelect={vi.fn()} onGenerated={vi.fn()}/>);
     await screen.findByText('尚未生成研判。节点、告警与证据可独立查看。');
     fireEvent.click(screen.getByRole('button',{name:/请求 AI 研判/}));
-    await screen.findByText(/正在生成，已等待/);
+    await screen.findAllByText(/正在生成/);
     fireEvent.click(screen.getByRole('button',{name:'取消生成'}));
     expect((await screen.findAllByText(/已取消生成/)).length).toBeGreaterThan(0);
   });

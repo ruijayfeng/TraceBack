@@ -13,3 +13,17 @@ class ResizeObserverMock {
 if (!('ResizeObserver' in globalThis)) {
   globalThis.ResizeObserver = ResizeObserverMock as unknown as typeof ResizeObserver;
 }
+
+// jsdom has no matchMedia; used by motion's useReducedMotion (rare-ui ai-status).
+if (!window.matchMedia) {
+  window.matchMedia = ((query: string) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addEventListener() {},
+    removeEventListener() {},
+    addListener() {},
+    removeListener() {},
+    dispatchEvent() { return false; },
+  })) as unknown as typeof window.matchMedia;
+}

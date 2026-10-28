@@ -30,14 +30,14 @@
 | Sheet / Dialog | coss.com/ui registry，适配 `@base-ui/react@1.9.0`（无 `Dialog.Viewport`） | 桌面右侧 580px Sheet、移动底部 sheet；焦点陷阱/Esc/scroll lock/焦点恢复由 Base UI 保证 |
 | Toast | Sonner（MIT） | 仅用于复制/导出/生成完成等非阻塞反馈；文案避开正式测试断言的短语，不新增 `role=alert` |
 | 图标 | Lucide（ISC） | 统一 `TraceIcon` 包装（16px、1.75 stroke、装饰性默认 aria-hidden）；时间线证据标记用本地 SVG，不混用 UI 图标 |
-| AI 状态动画 | rare-ui `ai-status`（可选，未接入） | 20KB 组件 + motion 依赖，评估后不进入主路径；AI 生成状态用 coss Badge/Spinner + 文本进度 |
+| AI 状态动画 | rare-ui `ai-status`（已接入生成态） | 仅 AI 研判 `generating` 使用；React.lazy 单独 chunk（约 49KB gzip），首屏不加载；reduced-motion 自动降级为静态标签 |
 
 ## 4. 交互规范
 
 - **焦点**：全局 `:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px }`；SVG 节点/边额外加 stroke 高亮；跳转后 h1 接收程序化焦点（`data-page-title`，无可见 ring）。
 - **键盘**：`/` 聚焦搜索或分析 ID；`Esc` 关闭证据/清空搜索；列表行 `Tab` 可聚焦，`Enter/Space` 打开；j/k 在列表行间移动（不覆盖输入框）；攻击链节点/边支持 Enter/Space 选择与方向键/Home/End 跳转，边列表是图操作的等价主路径。
 - **悬停**：hover 只在 `@media (hover:hover) and (pointer:fine)` 生效；移动端无 hover 依赖。
-- **动效表面（只保留 5 类）**：按钮 hover/active、Sheet/Dialog 进出、Toast 进出、生成中 Spinner/进度文案、列表加载淡入。数据点、攻击链、时间线、证据不做装饰动画。
+- **动效表面（只保留 5 类）**：按钮 hover/active、Sheet/Dialog 进出、Toast 进出、AI 生成中的 rare-ui 状态动画、列表加载淡入。数据点、攻击链、时间线、证据不做装饰动画。
 - **reduced motion**：全局 `prefers-reduced-motion: reduce` 将动画/过渡压到 0.01ms；Sonner/Sheet 自带动画也遵守。
 - **响应式断点**：≥1025 固定侧栏；721–1024 窄侧栏；≤900 侧栏变为顶部栏 + 移动导航 dialog；≤720 顶栏换行、指标 2 列；≤640 列表变卡片。页面级横向溢出在所有断点必须为 0（可用 `documentElement.scrollWidth <= innerWidth + 1` 检查）。
 - **错误**：错误文案 = 中文标题 + 原样错误码 + 重试；错误码映射在 `src/lib/errors.ts`，不吞掉后端 code。

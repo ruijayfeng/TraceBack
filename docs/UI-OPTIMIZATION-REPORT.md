@@ -44,7 +44,7 @@
 coss Sheet/Dialog（Base UI 1.9 适配版）：桌面右 580px / 移动底部 85dvh；role=dialog、焦点陷阱、Esc、scroll lock、焦点恢复；面包屑 + 对象类型 + 完整 ID 复制；可搜索支撑告警（来源/时间/规则）；指针/字段来源/实体/raw_alert 惰性读取；旧 backdrop 已移除。
 
 ### G10 AI 报告（T74–T84）
-AI 入口/锚点；重新生成二次确认；生成进度/取消/45s 超时/失败重试；已保存报告；长文本 clamp+展开；攻击过程步骤编号；ATT&CK 已验证/未生成区分；0 引用证据禁用；建议 claim 关联；Markdown 预览 + JSON/MD 导出 + Toast；诊断/被拒绝内容折叠。T83 rare `ai-status` 评估后不接入（体积/动效面）。
+AI 入口/锚点；重新生成二次确认；生成进度/取消/45s 超时/失败重试；已保存报告；长文本 clamp+展开；攻击过程步骤编号；ATT&CK 已验证/未生成区分；0 引用证据禁用；建议 claim 关联；Markdown 预览 + JSON/MD 导出 + Toast；诊断/被拒绝内容折叠。T83 rare `ai-status` 已接入 AI 生成态（lazy chunk，约 49KB gzip，首屏不加载，reduced-motion 降级）。
 
 ### G11 交互与性能（T85–T91）
 `node_id/edge_id/evidence/timeline_page` 深链（刷新/分享/前进后退）；返回队列滚动恢复；最近分析（后端 `/analyses` + localStorage）；`/`、Esc、j/k；CSV/print；JsonView 惰性序列化；错误边界按视图 key 复位 + 失败态标题；bundle 预算门禁。

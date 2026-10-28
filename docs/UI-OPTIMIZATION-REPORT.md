@@ -74,7 +74,7 @@ AI 入口/锚点；重新生成二次确认；生成进度/取消/45s 超时/失
 
 ## 五、待负责人决策 / 已知限制
 
-1. **项目 LICENSE**：仓库仍无根 LICENSE；需 owner 决定（在决定前保持“保留所有权利”）。
+1. **项目 LICENSE**：与上游一致，上游当前无根 LICENSE（保留所有权利），本分支不新增/更改项目级 LICENSE。
 2. **coss registry MIT 口径**：`apps/ui/registry` 声明 MIT，但公开发布前建议向 coss.com 书面确认；未使用 AGPL 的 `packages/ui`。
 3. **rare-ui `ai-status`**：保留源文件作可选试点，未接入；若接入需页面/README 可见 rareui.com 链接。
 4. **真实 45k 数据集 E2E**：仍以 `TRACEBACK_REAL_DATA=1` + 数据文件 gate；本机无该数据集，3 个 @real skipped。真实快照下建议再跑一次。

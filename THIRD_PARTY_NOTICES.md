@@ -44,5 +44,5 @@ TraceBack 的 UI 优化使用/复制以下第三方开源项目。分发本项�
 
 ## 备注
 
-- TraceBack 仓库当前没有根 LICENSE（默认保留所有权利）；在公开发布包含第三方组件的版本前，请先由项目负责人确定项目自身 LICENSE，并完成 coss/rare 的许可确认。本文件不是法律意见。
+- 项目 LICENSE 与上游 `zxxxj24/TraceBack` 保持一致：上游 `main` 当前没有根 LICENSE（默认保留所有权利），本分支不新增/更改项目级 LICENSE。第三方组件仍按其各自许可证使用；coss registry 的 MIT 口径与 rare-ui 的 Commons Clause/Attribution 要求见上。本文件不是法律意见。
 - detector/axe 审计结果与复跑命令见 `design-libs/reports/final-audit.md`。

@@ -136,7 +136,7 @@ AI 入口/锚点；重新生成二次确认；生成进度/取消/45s 超时/失
 - `npm run verify`：PASS（typecheck / 61 unit / build / bundle JS 141.89KB · CSS 16.24KB）。
 - `npm run test:e2e`：29 passed / 3 skipped（含 axe、visual 16 张基线、aria、forced-colors、zoom）。
 - Detector：0 findings / no drift。
-- taste-skill inspector（production preview 4175）：**0 FAIL / 1 WARN**；唯一 WARN 为「60% 文本 <13px」，这是 SOC 高密度证据表的主动取舍（11–12px 用于标签/时间/实体子行），已在 DESIGN.md 记录。
+- taste-skill inspector（production preview 4175）：**0 FAIL / 1 WARN**；唯一 WARN 为「58% 文本 <13px」，这是 SOC 高密度证据表的主动取舍（11–12px 用于标签/时间/实体子行），已在 DESIGN.md 记录。
 - 响应式：1440 / 1024 / 900 / 768 / 390 复跑工作台与详情，页面级横向溢出 0。
 
 ### 已知未做

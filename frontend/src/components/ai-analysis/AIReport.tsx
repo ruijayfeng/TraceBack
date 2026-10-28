@@ -39,8 +39,8 @@ function EvidenceLinks({finding, onEvidence, onSelect}: {finding: Finding; onEvi
 
 export function ReportContent({report, onEvidence, onSelect}: {report: Report; onEvidence: (e: EvidenceSelection) => void; onSelect: (kind: 'node' | 'edge', id: string) => void}) {
   const claims = new Map(report.claims.filter(c => c.grounding_status === 'validated').map(c => [c.claim_id, c]));
-  const findings = (items: Finding[]) => items.filter(f => claims.has(f.claim_id)).map(f => <article className="finding" key={f.claim_id}><span className="badge verified">已验证 · {claims.get(f.claim_id)!.kind === 'inference' ? 'AI 解释 / 推测' : '有据事实'}</span><ClaimText text={claims.get(f.claim_id)!.text}/><EvidenceLinks finding={f} onEvidence={onEvidence} onSelect={onSelect}/></article>);
-  const attackPath = report.attack_path.filter(f => claims.has(f.claim_id)).map(f => <article className="finding attack-step" key={f.claim_id}><div className="attack-step-heading"><span className="step-index">步骤 {f.step}</span><span className="badge verified">已验证 · {claims.get(f.claim_id)!.kind === 'inference' ? 'AI 解释 / 推测' : '有据事实'}</span></div><ClaimText text={claims.get(f.claim_id)!.text}/><EvidenceLinks finding={f} onEvidence={onEvidence} onSelect={onSelect}/></article>);
+  const findings = (items: Finding[]) => items.filter(f => claims.has(f.claim_id)).map(f => <article className="finding" key={f.claim_id}><span className="claim-kind">已验证 · {claims.get(f.claim_id)!.kind === 'inference' ? 'AI 解释 / 推测' : '有据事实'}</span><ClaimText text={claims.get(f.claim_id)!.text}/><EvidenceLinks finding={f} onEvidence={onEvidence} onSelect={onSelect}/></article>);
+  const attackPath = report.attack_path.filter(f => claims.has(f.claim_id)).map(f => <article className="finding attack-step" key={f.claim_id}><div className="attack-step-heading"><span className="step-index">步骤 {f.step}</span><span className="claim-kind">已验证 · {claims.get(f.claim_id)!.kind === 'inference' ? 'AI 解释 / 推测' : '有据事实'}</span></div><ClaimText text={claims.get(f.claim_id)!.text}/><EvidenceLinks finding={f} onEvidence={onEvidence} onSelect={onSelect}/></article>);
   const techniques = report.attack_techniques.filter(t => t.mapping_status === 'validated' && claims.get(t.claim_id)?.kind === 'attack_mapping');
   const recommendationClaims = [...claims.values()].filter(c => c.kind === 'recommendation');
   const actions = report.recommended_actions.filter(a => recommendationClaims.some(c => c.text.includes(a.recommendation)));
@@ -57,7 +57,7 @@ export function ReportContent({report, onEvidence, onSelect}: {report: Report; o
 }
 
 function TechniqueRow({technique: t, text, onEvidence, onSelect}: {technique: Technique; text: string; onEvidence: (e: EvidenceSelection) => void; onSelect: (kind: 'node' | 'edge', id: string) => void}) {
-  return <article className="technique"><span className="badge verified">目录已验证</span><h3>{t.technique_id} · {t.technique_name}</h3><p>{t.tactic} · 目录版本 {t.catalog_version}</p><p>{t.reason}</p><details className="subtle-details"><summary>支撑陈述</summary><p>{text}</p><StableId label="陈述 ID" value={t.claim_id}/></details><EvidenceLinks finding={{...t, statement: text}} onEvidence={onEvidence} onSelect={onSelect}/></article>;
+  return <article className="technique"><span className="claim-kind">目录已验证</span><h3>{t.technique_id} · {t.technique_name}</h3><p>{t.tactic} · 目录版本 {t.catalog_version}</p><p>{t.reason}</p><details className="subtle-details"><summary>支撑陈述</summary><p>{text}</p><StableId label="陈述 ID" value={t.claim_id}/></details><EvidenceLinks finding={{...t, statement: text}} onEvidence={onEvidence} onSelect={onSelect}/></article>;
 }
 
 const GENERATION_TIMEOUT_MS = 45_000;
@@ -184,7 +184,7 @@ export function AIReport({analysisId, incidentId, chain, onEvidence, onSelect, o
       {error && <ErrorState error={error} onRetry={state === 'failed' ? requestGenerate : retrySaved} scope="AI 研判报告"/>}
       {cancelled && <Notice kind="info">已取消生成。上次已验证的报告和证据仍保留。</Notice>}
       {!loading && !result && !error && <EmptyState description="节点、告警与证据仍可独立查看；生成后会保存正式报告。" title="尚未生成研判。节点、告警与证据可独立查看。"/>}
-      {result && <p className="muted-text" style={{fontSize: 11}}>生成状态：{statusLabel(result.generation_status)} · 来源：{originLabel(result.result_origin)}{result.provider_metadata && ` · ${result.provider_metadata.provider} / ${result.provider_metadata.model}`}</p>}
+      {result && <p className="muted-text" style={{fontSize: 12}}>生成状态：{statusLabel(result.generation_status)} · 来源：{originLabel(result.result_origin)}{result.provider_metadata && ` · ${result.provider_metadata.provider} / ${result.provider_metadata.model}`}</p>}
       {result?.degraded && <Notice kind="info">AI 不可用或部分生成内容被拒绝。下方只展示已验证内容；确定性事实模板不代表模型生成成功。</Notice>}
       {result && !report && <Notice kind="error">报告未通过发布或快照一致性检查，不能作为正式结论展示。</Notice>}
     </Section>
@@ -193,7 +193,7 @@ export function AIReport({analysisId, incidentId, chain, onEvidence, onSelect, o
     {report && result?.report_markdown && <details className="raw-report"><summary>原始报告 / Markdown</summary><pre className="markdown-preview">{result.report_markdown}</pre></details>}
     <Dialog onOpenChange={setConfirmOpen} open={confirmOpen}>
       <DialogPopup aria-label="重新生成 AI 研判">
-        <DialogHeader><DialogTitle>重新生成会覆盖已保存报告</DialogTitle><DialogDescription>将再次请求 AI 研判并覆盖当前已保存的正式报告。设备告警、攻击链与证据不会被修改。</DialogDescription></DialogHeader>
+        <DialogHeader><DialogTitle className="text-xl font-semibold">重新生成会覆盖已保存报告</DialogTitle><DialogDescription>将再次请求 AI 研判并覆盖当前已保存的正式报告。设备告警、攻击链与证据不会被修改。</DialogDescription></DialogHeader>
         <DialogFooter><Button onClick={() => setConfirmOpen(false)} type="button" variant="outline">取消</Button><Button onClick={() => {setConfirmOpen(false);void generate();}} type="button">确认重新生成</Button></DialogFooter>
       </DialogPopup>
     </Dialog>

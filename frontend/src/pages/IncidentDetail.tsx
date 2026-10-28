@@ -94,7 +94,7 @@ export default function IncidentDetail({analysisId, incidentId, initialNodeId = 
             </div>
           </div>
           <div>
-            <h3 className="field-list-title">观测字段 / 网络与主机</h3>
+            <h3 className="field-list-title">观测字段</h3>
             <div className="field-list">
               {d.observations.fields.length ? d.observations.fields.map((f,index) => <div className="field-row" key={index}>
                 <b>{fieldLabel(f.field)}</b>

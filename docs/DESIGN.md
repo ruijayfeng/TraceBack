@@ -1,6 +1,6 @@
 # TraceBack UI 设计系统 · v2「framed sheet」
 
-> 状态：2026-10-28，`pr/ui-optimization` 分支。与 [PRODUCT.md](./PRODUCT.md)、[THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md) 配套阅读。
+> 状态：2026-10-28，`pr/ui-optimization` 分支。与 [PRODUCT.md](./PRODUCT.md)、[UI-DETAIL-AUDIT.md](./UI-DETAIL-AUDIT.md)、[THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md) 配套阅读。
 > 方向来源：Impeccable（Operate 模式 + craft floor）与 taste-skill v2 `framed-sheet`（app、kind=support，seed 1901974840）。
 > 本文既是设计规范，也是实现约束：新页面/新组件先对齐这里，再写代码。
 
@@ -21,7 +21,7 @@ TraceBack 是**被工作的界面**（Operate），不是被阅读的落地页�
 | 8 张等权 KPI 卡（icon + 大数字 + 阴影） | 改为 1 个 divided strip；数值 24px、标签 12px、无图标、无阴影 |
 | 卡片内再套卡片、每个 section 一张卡 | sheet 本身就是面；section 用 1px rule 和间距分组 |
 | 全大写/加字距表头、斑马纹、表头底色 | 12px 灰、sentence case、只用行规则与对齐 |
-| 标题上方的小 eyebrow / kicker | 标题自己承担层级；元信息放标题下 11px 灰行 |
+| 标题上方的小 eyebrow / kicker | 标题自己承担层级；元信息放标题下 12px 灰行 |
 | 装饰性渐变、玻璃、backdrop-blur、glow | 删除；浮层只用 1px 边 + 低透明度阴影 |
 | 编号步骤、彩色分类图标、KPI sparkline | 不承载数据意义的一律删 |
 | 全局 `button{}` / `input{}` / `table{}` 元素样式 | 旧层泄漏曾把复制按钮压成 0 宽；v2 的 app.css 全部 class-scoped |
@@ -35,7 +35,10 @@ TraceBack 是**被工作的界面**（Operate），不是被阅读的落地页�
 - **状态**：success `#246b4b` / warning `#8a5a10` / danger `#a33a2c` + 同色 pale pill；状态色只表达状态，不上 chrome。
 - **圆角**：sheet 16、card 10、control 8、chip 4；只允许这两组，不出现 12px 中间值。
 - **字体**：系统 grotesk（`--tb-font-sans`）；mono 只有一个工作——稳定 ID、告警 ID、表格时间。**不加载未声明的 Inter**；等宽只做数据。
-- **字号**：11 / 12 / 13 / 14 / 16 / 18 / 20 / 24 / 28。页面标题 24（手机 20），section 16，正文 14，表格 13/12，标签 11–12；11px 是地板。
+- **字号（7 级，最小 12px）**：12 meta/label（表头、字段名、page meta、hint）、13 data（表格单元、事实值、列表 meta）、14 body（正文、AI claim、导航、按钮）、16 section title、20 浮层标题 / 移动页面标题、24 page title、28 欢迎页 h1（移动 24）。
+- **字重只有 3 档**：400 正文、500 标签与弱强调、600 标题与关键数字。**不使用 550/650**。
+- **中文字距为 0**；只有品牌字标可微调（当前也没有）。不用负字距压中文。
+- **行高**：标题 1.3；表格 1.45；正文 1.5；长文（AI claim）1.7。数字一律 `tabular-nums`；`time` 元素在 base 层统一 tabular。
 - **层序**：`theme, base, components, utilities`；组件样式在 `app.css` 的 `@layer components`，Tailwind utilities 始终可以覆盖。圆角/阴影/颜色都由 token 推导，不在页面写魔法值。
 
 ## 4. 外壳与栅格
@@ -43,10 +46,10 @@ TraceBack 是**被工作的界面**（Operate），不是被阅读的落地页�
 - Desktop ≥1101：`232px` 侧栏 + 48px 顶栏 + 白色 sheet；sheet 右侧/底部各 8px；内容最大 1360px，左右 28px。
 - 顶栏：左 232px 产品名（TraceBack 智溯），中间 548–620px 分析 ID 搜索（`/` 聚焦、粘贴、打开分析），右 32px 帮助/菜单；chrome 与侧栏同 ground，无分隔线。
 - 侧栏：分析范围（短 ID + 复制）→「调查流程」2 个目的地 → 底部快捷键与离线快照声明；active 是中性灰 pill，不是品牌色。空状态明确写「尚未打开分析」。
-- 1101–900：侧栏 200px，内容 padding 22。
+- 1101–900：侧栏 200px，内容 padding 22；≤1200 追溯带 4×2，≤1100 诊断折叠，≤1280 事件表改两行列表；表头与首列在表格模式 sticky。
 - ≤900：侧栏折成顶栏菜单 + dialog；sheet 全屏、去圆角；顶栏两行（品牌 + 菜单 / 搜索）。
-- ≤720：诊断信息进入 `分析诊断 · 去重 / 分布 / 评分` disclosure；筛选进入 `筛选与时间` disclosure；表格变两行列表（`useMediaQuery('(max-width: 640px)')` 切换，不是 CSS 双渲染）。
-- 列表页栅格：6 列（事件 25 / 时间 19 / 计数 13 / 实体 20 / AI 13 / 调查 10）；时间等宽右对齐，数字 `tabular-nums`。
+- 720–1280：诊断已折叠，列表为两行行式（`useMediaQuery('(max-width: 1280px)')`）；≤720 进一步隐藏页面 meta、把筛选收进 `实体与筛选` disclosure；≤640 行式排版更紧凑。≥1281 才使用 6 列表格（首列 sticky，时间列只显示 UTC 表头 + 起止行）。
+- 列表页栅格（≥1281）：事件 27 / 时间 19 / 计数 13 / 实体 18 / AI 12 / 操作 11；表格最小宽 960px；时间等宽、数字 `tabular-nums`；≤1280 切换为「摘要 + 状态行 + ID 行 + meta」的两行列表。
 
 ## 5. 组件地图
 
@@ -62,7 +65,7 @@ TraceBack 是**被工作的界面**（Operate），不是被阅读的落地页�
 ## 6. 页面蓝图
 
 ### 工作台 `/`
-1. PageHead：`安全事件工作台`（24/600）+ 分析 ID/时间/冻结快照 11px 灰；右：状态 pale pill + 唯一主操作「查看全部事件」。
+1. PageHead：`安全事件工作台`（24/600）+ 分析 ID/时间/冻结快照 12px 灰；右：状态 pale pill + 唯一主操作「查看全部事件」。
 2. 追溯带：一条 divided strip，8 个 `.metric`；前 4 个 24px 数值 + 32px 间距 + 细箭号，后 4 个 17px 低一级计数；无图标、无阴影。
 3. 两张诊断卡：去重诊断（0 含去重展开的事件 + 一句解释）/ 分布（来源、等级、类别各一列，2px 灰条 + 数字）。
 4. 「关联评分诊断 · 未生成」折叠行、`分析诊断 / 可复核配置` 折叠行（不是面板）。
@@ -70,7 +73,7 @@ TraceBack 是**被工作的界面**（Operate），不是被阅读的落地页�
 
 ### 事件详情 `/incident/:id`
 面包屑（返回队列 / 安全事件）→ h1 = incident.summary（24/600，手机 20）→ 4 个状态 pill（severity 有色彩，其余中性）+ ID 行 → sticky underline tabs（概况/攻击链/证据/时间线/AI）。
-- 概况：左 facts（观察区间、成员、来源、工作流）+ 关键实体；右观测字段行（11px 标签 / 13px 值 / 右侧「证据」文字动作）。无卡片边框。
+- 概况：左 facts（观察区间、成员、来源、工作流）+ 关键实体；右观测字段行（12px 标签 / 13px 值 / 右侧「证据」文字动作）。无卡片边框。
 - 攻击链：toolbar（节点/边/置信分说明 + fit/zoom）+ 浅点阵画布；节点=白底 1px 边、选中 2px 青边、置信条 2px；边 1.5px 灰、选中 2.5px 青；节点/边详情在画布下方平铺，不再套卡。
 - 证据：一句边界说明 +「查看全部成员证据 · N」outline 按钮。
 - 时间线：UTC 全范围标尺、lane 40px、marker 10px、聚类 pill；精确时间表放下面。

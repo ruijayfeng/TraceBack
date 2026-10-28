@@ -18,7 +18,7 @@ it('uses representative projections and Chinese labels without changing API enum
   await screen.findByText('安全事件工作台');
   for(const text of ['标准化告警','冻结分析快照','分析完成','低','中','高','未知'])expect(screen.getByText(text,{exact:true})).toBeInTheDocument();
   for(const text of ['CanonicalAlert','FROZEN ANALYSIS','Analysis Diagnostics'])expect(screen.queryByText(text)).not.toBeInTheDocument();
-  expect(screen.getByText('分析诊断 / 可复核配置')).toBeInTheDocument();
+  expect(screen.getByText('分析诊断与复核配置')).toBeInTheDocument();
   expect(within([...container.querySelectorAll('.metric')].find(m=>m.textContent?.includes('关联聚合事件')) as HTMLElement).getByText('0')).toBeInTheDocument();
   expect(JSON.stringify(data)).toBe(before);
 });

@@ -18,7 +18,7 @@ const OBJECT_KIND: [string, string][] = [['inc_', '安全事件'], ['nod_', '攻
 function objectKind(id: string) {return OBJECT_KIND.find(([prefix]) => id.startsWith(prefix))?.[1] ?? '证据对象';}
 
 function alertOptionLabel(alert: AlertDetail | undefined, id: string) {
-  if (!alert) return shortId(id);
+  if (!alert) return '告警元数据不可读';
   return `${sourceLabel(alert.alert.source_type)} · ${alert.alert.timestamp.slice(0, 19).replace('T', ' ')} · ${alert.alert.rule_id ?? '规则未提供'}`;
 }
 
@@ -43,8 +43,8 @@ export function EvidencePanel({analysisId, selection, onClose}: {analysisId: str
       <div className="drawer-head">
         <div className="drawer-head-top">
           <div className="min-w-0">
-            <nav aria-label="证据面包屑" className="drawer-crumb"><span>安全事件</span><span aria-hidden>/</span><span>{kind}</span><span aria-hidden>/</span><span aria-current="page">证据</span></nav>
-            <SheetTitle className="drawer-title">{selection.title}</SheetTitle>
+            <nav aria-label="证据面包屑" className="drawer-crumb"><span>安全事件</span><span aria-hidden>/</span>{kind !== '安全事件' && <><span>{kind}</span><span aria-hidden>/</span></>}<span aria-current="page">证据</span></nav>
+            <SheetTitle className="drawer-title text-xl font-semibold leading-tight">{selection.title}</SheetTitle>
             <SheetDescription className="sr-only">{kind}的设备告警证据与字段指针</SheetDescription>
           </div>
           <SheetClose aria-label="关闭证据" className="icon-button" type="button"><TraceIcon icon={X} size={18}/></SheetClose>
@@ -58,9 +58,9 @@ export function EvidencePanel({analysisId, selection, onClose}: {analysisId: str
             {filteredIds.length ? filteredIds.map(id => <div aria-selected={id === active} className={id === active ? 'alert-option selected' : 'alert-option'} key={id} onClick={() => setActive(id)} onKeyDown={event => {if (event.key === 'Enter' || event.key === ' ') {event.preventDefault();setActive(id);} else if (event.key === 'ArrowDown') {event.preventDefault();moveActive(1);} else if (event.key === 'ArrowUp') {event.preventDefault();moveActive(-1);}}} role="option" tabIndex={0}>
               <span className="alert-option-id">{shortId(id)}</span>
               <span className="alert-option-meta">{options.loading ? '正在读取告警元数据…' : alertOptionLabel(optionsById.get(id), id)}</span>
-            </div>) : <p className="muted-text" style={{fontSize: 11, padding: '6px 4px'}}>没有匹配的支撑告警。</p>}
+            </div>) : <p className="muted-text" style={{fontSize: 12, padding: '6px 4px'}}>没有匹配的支撑告警。</p>}
           </div>
-          {options.error && <p className="muted-text" style={{fontSize: 11}}>告警元数据暂不可读取，仍可按 ID 选择。</p>}
+          {options.error && <p className="muted-text" style={{fontSize: 12}}>告警元数据暂不可读取，仍可按 ID 选择。</p>}
         </div> : <EmptyState description="该对象没有绑定设备告警，只能查看字段指针或实体。" title="没有可读取的支撑告警。"/>}
         {resource.loading && !data && <TextSkeleton lines={4}/>}
         {resource.loading && !data && <Notice kind="loading">正在读取证据…</Notice>}
@@ -77,12 +77,12 @@ export function EvidencePanel({analysisId, selection, onClose}: {analysisId: str
               <div className="drawer-fact"><dt>设备观测等级 / 类别</dt><dd>{severityLabel(data.alert.severity)} · {categoryLabel(data.alert.category)}</dd></div>
             </dl>
           </div>
-          {pointers.length > 0 && <div className="drawer-section"><h3>绑定证据指针</h3>{pointers.map((p, i) => <p key={i} className="muted-text" style={{fontSize: 11, margin: '0 0 4px'}}><code>{p.pointer || '(root)'}</code> · side={p.side}<br/><StableId label="告警 ID" value={p.alert_id}/></p>)}</div>}
+          {pointers.length > 0 && <div className="drawer-section"><h3>绑定证据指针</h3>{pointers.map((p, i) => <p key={i} className="muted-text" style={{fontSize: 12, margin: '0 0 4px'}}><code>{p.pointer || '(root)'}</code> · side={p.side}<br/><StableId label="告警 ID" value={p.alert_id}/></p>)}</div>}
           <div className="drawer-section"><h3>相关字段</h3><dl className="drawer-facts">{Object.entries(data.alert.field_provenance).sort(([a],[b]) => a.localeCompare(b)).map(([field, provenance]) => <div className="drawer-fact" key={field}><dt>{fieldLabel(field)}</dt><dd>{formatRelatedField(field, data.alert[field as keyof typeof data.alert])}<br/><code>{provenance.raw_pointer || '(root)'}</code><small className="muted-text"> · {provenance.transform}</small></dd></div>)}</dl></div>
           <div className="drawer-section"><h3>实体</h3>{data.entities.length ? <ul className="entities">{data.entities.map(e => <li key={e.entity_id}><b>{entityLabel(e.type)}</b> {e.display_value ?? e.value}<small>{e.scope}</small></li>)}</ul> : <Notice>该告警未抽取实体。</Notice>}</div>
           <details className="raw-evidence"><summary>原始设备告警 / raw_alert</summary><JsonView value={data.alert.raw_alert} title="raw_alert"/></details>
           <details className="subtle-details"><summary>标准化告警完整引用</summary><JsonView value={{...data.alert, raw_alert: '[see raw_alert above]'}}/></details>
-          <p className="muted-text" style={{fontSize: 11, marginTop: 16}}>告警存在及其字段属于设备观测事实；告警本身不代表入侵已确认。</p>
+          <p className="muted-text" style={{fontSize: 12, marginTop: 16}}>告警存在及其字段属于设备观测事实；告警本身不代表入侵已确认。</p>
         </>}
       </div>
     </SheetPopup>

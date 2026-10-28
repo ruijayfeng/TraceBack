@@ -45,7 +45,7 @@ export function Pill({tone = 'neutral', children, className}: {tone?: 'neutral' 
   return <span className={'pill ' + (tone === 'neutral' ? '' : 'pill-' + tone) + ' ' + (className ?? '')}>{children}</span>;
 }
 
-export function SectionFootnote({children}: {children: ReactNode}) {return <p className="muted-text" style={{fontSize: 11, margin: '10px 0 0'}}>{children}</p>;}
+export function SectionFootnote({children}: {children: ReactNode}) {return <p className="muted-text" style={{fontSize: 12, margin: '10px 0 0'}}>{children}</p>;}
 
 export function JsonView({value, title = '原始内容'}: {value: unknown; title?: string}) {
   const [expanded, setExpanded] = useState(false);

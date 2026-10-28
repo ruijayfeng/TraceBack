@@ -149,7 +149,7 @@ npm run detect:ui:check  # detector ratchet（只对新增 P0 失败）
 ```
 
 - 项目级设计技能（本地可选，未纳入版本库）：`TraceBack/.dsh/skills/`（Impeccable 4.8.0 + emilkowalski 13 个技能）与 `TraceBack/.agents/`（taste-skill v2，用于方向与 inspector 验收）。
-- 可访问性：`docs/A11Y-MANUAL-CHECKLIST.md`；OpenAPI 快照：`docs/openapi-workbench.json`（`PYTHONPATH=backend python scripts/export_openapi.py --check`）。
+- 细节审计：`docs/UI-DETAIL-AUDIT.md`（布局/标签/层级/字体/比例逐项）；可访问性：`docs/A11Y-MANUAL-CHECKLIST.md`；OpenAPI 快照：`docs/openapi-workbench.json`（`PYTHONPATH=backend python scripts/export_openapi.py --check`）。
 - 视觉/设计系统说明与动效规范：`docs/DESIGN.md`；产品说明：`docs/PRODUCT.md`；最终交付报告：`docs/UI-OPTIMIZATION-REPORT.md`；审计证据：`docs/UI-AUDIT.md`；第三方文件级来源：`THIRD_PARTY_NOTICES.md`。
 - 深链示例：`?analysis_id=<id>&incident_id=<id>&node_id=<nod_id>&timeline_page=2&evidence=<alt_id>`；`/` 聚焦搜索、`Esc` 关闭证据、`j/k` 列表行导航。
 - 项目 LICENSE：MIT（见根 `LICENSE`；上游未声明，本分支补充，供 PR 评审）。

@@ -169,7 +169,7 @@ function Workspace() {
           : <><span className="sidebar-scope-empty">尚未打开分析</span><p className="sidebar-scope-meta">从顶栏粘贴分析 ID</p></>}
       </div>
       <nav aria-label="调查流程">
-        <p className="nav-label">调查流程</p>
+        <p className="nav-label">工作区</p>
         <button aria-current={activeList ? 'page' : undefined} className={'nav-item ' + (activeList ? 'active' : '')} onClick={() => analysisId && navigate(analysisId)} type="button"><TraceIcon icon={LayoutDashboard} size={15}/>分析工作台</button>
         <button aria-current={incidentId ? 'page' : undefined} className={'nav-item ' + (incidentId ? 'active' : '')} onClick={() => analysisId && navigate(analysisId,'',{...filters,page:1,kind:'has_chain'})} title="查看有向攻击链事件" type="button"><TraceIcon icon={GitBranch} size={15}/>安全事件 / 证据研判</button>
       </nav>
@@ -180,7 +180,7 @@ function Workspace() {
       </div>
 
       <dialog aria-label="调查流程导航" className="mobile-nav" onCancel={closeMenu} onClose={() => setMenuOpen(false)} ref={menuRef}>
-        <div className="mobile-nav-head"><strong>调查流程</strong><button aria-label="关闭导航菜单" className="icon-button" onClick={closeMenu} type="button"><TraceIcon icon={X} size={18}/></button></div>
+        <div className="mobile-nav-head"><strong>工作区</strong><button aria-label="关闭导航菜单" className="icon-button" onClick={closeMenu} type="button"><TraceIcon icon={X} size={18}/></button></div>
         {analysisId && <CopyId className="mobile-nav-scope" label="当前分析 ID" value={analysisId}/>}
         <button aria-current={activeList ? 'page' : undefined} className={'nav-item ' + (activeList ? 'active' : '')} onClick={() => {closeMenu();analysisId && navigate(analysisId);}} type="button"><TraceIcon icon={LayoutDashboard} size={16}/>分析工作台</button>
         <button aria-current={incidentId ? 'page' : undefined} className={'nav-item ' + (incidentId ? 'active' : '')} onClick={() => {closeMenu();analysisId && navigate(analysisId,'',{...filters,page:1,kind:'has_chain'});}} type="button"><TraceIcon icon={GitBranch} size={16}/>安全事件 / 证据研判</button>
@@ -213,7 +213,7 @@ function Workspace() {
     {evidence && <EvidencePanel analysisId={analysisId} key={analysisId+evidence.objectId+evidence.alertIds.join(',')} onClose={closeEvidence} selection={evidence}/>}
     <Dialog onOpenChange={setHelpOpen} open={helpOpen}>
       <DialogPopup aria-label="键盘快捷键" className="max-w-lg">
-        <DialogHeader><DialogTitle>键盘快捷键</DialogTitle><DialogDescription>输入框内不触发；对话框内按 Esc 先关闭对话框。</DialogDescription></DialogHeader>
+        <DialogHeader><DialogTitle className="text-xl font-semibold">键盘快捷键</DialogTitle><DialogDescription>输入框内不触发；对话框内按 Esc 先关闭对话框。</DialogDescription></DialogHeader>
         <dl className="shortcut-list">
           <div><dt><Kbd>/</Kbd></dt><dd>聚焦搜索框（列表页）或分析 ID 输入框</dd></div>
           <div><dt><Kbd>?</Kbd></dt><dd>打开本快捷键帮助</dd></div>

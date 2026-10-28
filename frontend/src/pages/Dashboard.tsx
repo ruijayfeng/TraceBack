@@ -29,13 +29,13 @@ function DistributionGroup({title, items, label, total}: {title: string; items: 
         <span className="val">{item.count.toLocaleString()}<small>{percent}%</small></span>
         <div aria-label={`${label(item.value)}：${item.count.toLocaleString()} 条，占 ${percent}%`} aria-valuemax={max} aria-valuemin={0} aria-valuenow={item.count} className="dist-bar" role="meter"><span style={{width: `${Math.max(percent, 0.5)}%`}} /></div>
       </div>;
-    }) : <p className="muted-text" style={{fontSize: 11, margin: 0}}>未提供</p>}
+    }) : <p className="muted-text" style={{fontSize: 12, margin: 0}}>未提供</p>}
   </div>;
 }
 
 export default function Dashboard({analysisId}: {analysisId: string}) {
   const resource = useResource(signal => api.overview(analysisId, signal), [analysisId], {keepPrevious:true});
-  const narrow = useMediaQuery('(max-width: 720px)');
+  const compact = useMediaQuery('(max-width: 1100px)');
   const d = resource.data;
   const totalAlerts = d?.counts.canonical_alert_count ?? 0;
   const scoreAvailable = d?.score_diagnostics?.status === 'available';
@@ -61,8 +61,8 @@ export default function Dashboard({analysisId}: {analysisId: string}) {
       </Card>
     </div>
     {scoreAvailable
-      ? <><ScoreDiagnostic data={d.score_diagnostics}/><details className="subtle-details" style={{marginBottom: 8}}><summary>分析诊断 / 可复核配置</summary>{configFacts}</details></>
-      : <details className="subtle-details" style={{marginBottom: 8}}><summary>分析诊断 / 可复核配置</summary><ScoreDiagnostic data={d.score_diagnostics}/>{configFacts}</details>}
+      ? <><ScoreDiagnostic data={d.score_diagnostics}/><details className="subtle-details" style={{marginBottom: 8}}><summary>分析诊断与复核配置</summary>{configFacts}</details></>
+      : <details className="subtle-details" style={{marginBottom: 8}}><summary>分析诊断与复核配置</summary><ScoreDiagnostic data={d.score_diagnostics}/>{configFacts}</details>}
   </>;
   return <>
     {resource.loading && !d && <div aria-label="正在加载分析" role="status">
@@ -90,8 +90,8 @@ export default function Dashboard({analysisId}: {analysisId: string}) {
           </Fragment>)}
         </div>
       </Card>
-      {narrow
-        ? <details className="mobile-diag"><summary>分析诊断 · 去重 / 分布 / 评分</summary>{diagnostics}</details>
+      {compact
+        ? <details className="diag-disclosure"><summary>分析诊断 · 去重 / 分布 / 评分</summary>{diagnostics}</details>
         : diagnostics}
     </>}
   </>;

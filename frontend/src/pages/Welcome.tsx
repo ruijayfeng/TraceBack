@@ -27,13 +27,13 @@ export default function Welcome({onOpen}: {onOpen: (analysisId: string) => void}
           : remote === null ? <p className="muted">正在读取分析列表…</p> : <p className="muted">本机还没有记录。打开一次分析后会出现在这里。</p>}
       </section>
       <aside aria-label="工作台说明" className="welcome-aside">
-        <h2>这份工作台回答什么</h2>
+        <h2>这份工作台能回答什么</h2>
         <dl className="facts">
           <div className="fact"><dt>关联判定</dt><dd>为什么只有 0 条或 1 条正式关联边，是严格证据准入还是漏召回。</dd></div>
           <div className="fact"><dt>节点构造</dt><dd>每个攻击步骤由哪些告警、实体和显式关系构成，置信分从哪来。</dd></div>
           <div className="fact"><dt>证据回溯</dt><dd>AI 结论只引用已验证 claim；被拒绝内容隔离在诊断里。</dd></div>
         </dl>
-        <h2>离线快照</h2>
+        <h2>本地演示</h2>
         <p>先在本地构建前端，再运行 <code>python scripts/demo.py --analysis-id &lt;ID&gt;</code> 打开同一份真实快照；不做实时告警流。</p>
       </aside>
     </div>

@@ -16,7 +16,9 @@
     "verify": "npm run typecheck && npm run test:run && npm run build && npm run check:bundle",
     "detect:ui": "node ../scripts/ui_detector_ratchet.mjs",
     "detect:ui:check": "node ../scripts/ui_detector_ratchet.mjs --check",
-    "check:bundle": "node ../scripts/check-bundle-budget.mjs"
+    "check:bundle": "node ../scripts/check-bundle-budget.mjs",
+    "test:e2e:webkit": "TRACEBACK_BROWSER=webkit playwright test e2e/a11y-smoke.spec.ts",
+    "test:e2e:firefox": "TRACEBACK_BROWSER=firefox playwright test e2e/a11y-smoke.spec.ts"
   },
   "dependencies": {
     "@base-ui/react": "1.9.0",

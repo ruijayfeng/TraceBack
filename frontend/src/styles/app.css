@@ -388,3 +388,16 @@ tr:hover td{background:#f8fbfc}
   a{color:inherit;text-decoration:none}
   .app{display:block}
 }
+
+
+/* F26: forced-colors keeps structural borders and focus visible. */
+@media (forced-colors: active){
+  .badge,.notice,.panel,.finding,.technique,.button-link,.metric,.report-nav-link{border:1px solid CanvasText}
+  .graph-node rect{stroke:CanvasText;fill:Canvas}
+  .graph-node.selected rect,.graph-node:focus-visible rect{stroke:Highlight;stroke-width:3}
+  .edge-line{stroke:CanvasText}
+  .graph-edge:focus-visible .edge-line{stroke:Highlight}
+  .timeline-marker{fill:CanvasText;stroke:CanvasText}
+  .timeline-cluster{border-color:CanvasText;color:CanvasText;background:Canvas}
+  [data-page-title]:focus{outline:2px solid CanvasText}
+}

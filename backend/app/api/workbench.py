@@ -179,6 +179,44 @@ def install_workbench(app, *, root=None, host_ui=True):
     # cooperative: the provider call may finish, but its result is discarded.
     jobs = app.state.ai_jobs = {}
     jobs_lock = app.state.ai_jobs_lock = Lock()
+    jobs_dir = q.root / "outputs" / "ai_jobs"
+
+    def public_job(job):
+        return {key: job.get(key) for key in ("job_id", "status", "created_at", "finished_at", "status_code", "result", "error")}
+
+    def persist_job(job):
+        try:
+            jobs_dir.mkdir(parents=True, exist_ok=True)
+            path = jobs_dir / (job["job_id"] + ".json")
+            temporary = path.with_suffix(".json.tmp")
+            temporary.write_text(json.dumps(public_job(job), ensure_ascii=False), encoding="utf-8")
+            temporary.replace(path)
+        except OSError:
+            # Job durability is best-effort; the in-memory registry still serves
+            # polling while the process is alive.
+            pass
+
+    def remove_job_file(job_id):
+        try:
+            (jobs_dir / (job_id + ".json")).unlink(missing_ok=True)
+        except OSError:
+            pass
+
+    # T103/F20: reload completed/cancelled jobs across process restarts; jobs
+    # that were running when the process stopped are reported as interrupted.
+    if jobs_dir.is_dir():
+        for path in sorted(jobs_dir.glob("*.json")):
+            try:
+                loaded = json.loads(path.read_text(encoding="utf-8"))
+                job_id = loaded["job_id"]
+                if not isinstance(job_id, str) or not job_id.isalnum() or loaded.get("status") not in {"queued", "running", "completed", "failed", "cancelled"}:
+                    continue
+            except (OSError, ValueError, KeyError, TypeError):
+                continue
+            if loaded["status"] in {"queued", "running"}:
+                loaded.update(status="failed", error="job_interrupted", finished_at=time())
+                persist_job(loaded)
+            jobs[job_id] = loaded
 
     def prune_jobs():
         now = time()
@@ -187,9 +225,11 @@ def install_workbench(app, *, root=None, host_ui=True):
             for job_id, job in finished:
                 if now - (job.get("finished_at") or now) > 3600:
                     jobs.pop(job_id, None)
+                    remove_job_file(job_id)
             while len(jobs) > 100:
                 oldest = min(jobs, key=lambda key: jobs[key]["created_at"])
                 jobs.pop(oldest, None)
+                remove_job_file(oldest)
 
     def run_job(job_id, analysis_id, incident_id):
         with jobs_lock:
@@ -197,6 +237,7 @@ def install_workbench(app, *, root=None, host_ui=True):
             if not job or job["status"] == "cancelled":
                 return
             job["status"] = "running"
+            persist_job(job)
         try:
             result = explain_incident(SimpleNamespace(app=app), analysis_id, incident_id)
             with jobs_lock:
@@ -213,11 +254,13 @@ def install_workbench(app, *, root=None, host_ui=True):
                 if not job or job["status"] == "cancelled":
                     return
                 job.update(status="completed", status_code=status_code, result=payload, finished_at=time())
+                persist_job(job)
         except Exception as exc:  # provider/query errors stay inside the job
             with jobs_lock:
                 job = jobs.get(job_id)
                 if job and job["status"] != "cancelled":
                     job.update(status="failed", error=type(exc).__name__, finished_at=time())
+                    persist_job(job)
 
     @router.post("/incidents/{incident_id}/explain-job", status_code=202)
     def start_explain_job(incident_id: IncidentID, request: Request):
@@ -226,10 +269,17 @@ def install_workbench(app, *, root=None, host_ui=True):
         # Fail fast for unknown incidents instead of surfacing it inside the job.
         q.get(analysis_id, "incidents", incident_id)
         prune_jobs()
+        now = time()
+        with jobs_lock:
+            running = sum(1 for item in jobs.values() if item["status"] in {"queued", "running"})
+            recent = sum(1 for item in jobs.values() if now - item["created_at"] < 60)
+        if running >= 4 or recent >= 30:
+            raise HTTPException(429, "ai_job_limited", headers={"Retry-After": "5"})
         job_id = uuid4().hex
         with jobs_lock:
             jobs[job_id] = {"job_id": job_id, "analysis_id": analysis_id, "incident_id": incident_id,
                             "status": "queued", "created_at": time(), "finished_at": None}
+            persist_job(jobs[job_id])
         Thread(target=run_job, args=(job_id, analysis_id, incident_id), daemon=True).start()
         return {"job_id": job_id, "status": "queued"}
 
@@ -243,7 +293,7 @@ def install_workbench(app, *, root=None, host_ui=True):
             job = jobs.get(job_id)
             if job is None:
                 raise HTTPException(404, "job_not_found")
-            return {key: job.get(key) for key in ("job_id", "status", "created_at", "finished_at", "status_code", "result", "error")}
+            return public_job(job)
 
     @router.delete("/ai-jobs/{job_id}")
     def cancel_explain_job(job_id: str, request: Request):
@@ -257,6 +307,7 @@ def install_workbench(app, *, root=None, host_ui=True):
                 raise HTTPException(404, "job_not_found")
             if job["status"] in {"queued", "running"}:
                 job.update(status="cancelled", finished_at=time())
+                persist_job(job)
         return {key: job.get(key) for key in ("job_id", "status", "created_at", "finished_at")}
 
     @router.get("/analyses/{analysis_id}/score-diagnostics")

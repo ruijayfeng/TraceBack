@@ -244,3 +244,81 @@ def test_async_explain_job_cancels_without_saving(api):
     assert client.get(f"/api/v1/ai-jobs/{job_id}").json()["status"] == "cancelled"
     saved = client.get(f"/api/v1/incidents/{iid}/explanation", params={"analysis_id": aid}).json()
     assert saved["state"] == "not_generated" and saved["result"] is None
+
+
+def test_ai_jobs_survive_restart_and_running_jobs_are_interrupted(api):
+    client, app, root = api
+    aid = create_run(api, [synthetic_record()])
+    iid = client.get(f"/api/v1/analyses/{aid}/workbench").json()["items"][0]["incident"]["incident_id"]
+    app.state.explanations = ExplanationService(FakeProvider())
+    job_id = client.post(f"/api/v1/incidents/{iid}/explain-job", params={"analysis_id": aid}).json()["job_id"]
+    for _ in range(200):
+        job = client.get(f"/api/v1/ai-jobs/{job_id}").json()
+        if job["status"] in {"completed", "failed", "cancelled"}:
+            break
+        time.sleep(.05)
+    assert job["status"] == "completed"
+    job_file = root / "outputs" / "ai_jobs" / (job_id + ".json")
+    assert job_file.is_file()
+    # A job left "running" by a hard stop is reported as interrupted, not stuck.
+    interrupted_id = "a" * 32
+    (root / "outputs" / "ai_jobs" / (interrupted_id + ".json")).write_text(json.dumps({
+        "job_id": interrupted_id, "status": "running", "created_at": 1.0, "finished_at": None,
+    }), encoding="utf-8")
+    config, sources = deployment(root, edge=True)
+    restarted = create_workbench_app(root, configs={"v0": config}, sources=sources)
+    with TestClient(restarted) as other:
+        completed = other.get(f"/api/v1/ai-jobs/{job_id}")
+        assert completed.status_code == 200 and completed.json()["status"] == "completed"
+        assert completed.json()["result"]["report_json"]["grounding_status"] == "validated"
+        interrupted = other.get(f"/api/v1/ai-jobs/{interrupted_id}").json()
+        assert interrupted["status"] == "failed" and interrupted["error"] == "job_interrupted"
+        # cancellation state also reloads
+        assert other.delete(f"/api/v1/ai-jobs/{interrupted_id}").status_code == 200
+
+
+def test_ai_job_concurrency_limit(api):
+    client, app, _ = api
+
+    class SlowFakeProvider(FakeProvider):
+        def explain(self, context):
+            time.sleep(.5)
+            return super().explain(context)
+
+    aid = create_run(api, [synthetic_record()])
+    iid = client.get(f"/api/v1/analyses/{aid}/workbench").json()["items"][0]["incident"]["incident_id"]
+    app.state.explanations = ExplanationService(SlowFakeProvider())
+    started = [client.post(f"/api/v1/incidents/{iid}/explain-job", params={"analysis_id": aid}) for _ in range(4)]
+    assert all(response.status_code == 202 for response in started), [response.text for response in started]
+    limited = client.post(f"/api/v1/incidents/{iid}/explain-job", params={"analysis_id": aid})
+    assert limited.status_code == 429 and limited.json()["detail"] == "ai_job_limited"
+    assert limited.headers["retry-after"] == "5"
+    for response in started:
+        client.delete(f"/api/v1/ai-jobs/{response.json()['job_id']}")
+    time.sleep(.8)
+
+
+def test_openapi_workbench_route_snapshot(api):
+    client, app, _ = api
+    root = Path(__file__).resolve().parents[2]
+    snapshot = json.loads((root / "docs" / "openapi-workbench.json").read_text(encoding="utf-8"))
+    methods = {"get", "put", "post", "delete", "patch", "options", "head"}
+    def operations(schema):
+        return {path: sorted(m for m in payload if m in methods) for path, payload in schema["paths"].items()}
+    current = operations(app.openapi())
+    assert current == operations(snapshot), "run: PYTHONPATH=backend python scripts/export_openapi.py"
+    # The eleven frozen routes keep their methods even as workbench routes grow.
+    frozen = {
+        "/api/v1/analyses": ["get", "post"],  # frozen POST + T102 list GET
+        "/api/v1/analyses/{analysis_id}": ["get"],
+        "/api/v1/alerts": ["get"],
+        "/api/v1/alerts/{alert_id}": ["get"],
+        "/api/v1/incidents": ["get"],
+        "/api/v1/incidents/{incident_id}": ["get"],
+        "/api/v1/incidents/{incident_id}/chain": ["get"],
+        "/api/v1/incidents/{incident_id}/timeline": ["get"],
+        "/api/v1/edges/{edge_id}": ["get"],
+        "/api/v1/incidents/{incident_id}/explain": ["post"],
+    }
+    for path, expected in frozen.items():
+        assert current[path] == expected, path

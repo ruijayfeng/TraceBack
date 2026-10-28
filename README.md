@@ -144,6 +144,7 @@ npm run detect:ui:check  # detector ratchet（只对新增 P0 失败）
 ```
 
 - 项目级设计技能（本地可选，未纳入版本库）：`TraceBack/.dsh/skills/`（Impeccable 4.8.0 + emilkowalski 13 个技能）。
+- 可访问性：`docs/A11Y-MANUAL-CHECKLIST.md`；OpenAPI 快照：`docs/openapi-workbench.json`（`PYTHONPATH=backend python scripts/export_openapi.py --check`）。
 - 视觉/设计系统说明与动效规范：`docs/DESIGN.md`；产品说明：`docs/PRODUCT.md`；最终交付报告：`docs/UI-OPTIMIZATION-REPORT.md`；审计证据：`docs/UI-AUDIT.md`；第三方文件级来源：`THIRD_PARTY_NOTICES.md`。
 - 深链示例：`?analysis_id=<id>&incident_id=<id>&node_id=<nod_id>&timeline_page=2&evidence=<alt_id>`；`/` 聚焦搜索、`Esc` 关闭证据、`j/k` 列表行导航。
 - 项目 LICENSE 仍待仓库负责人决定；在决定前保持“保留所有权利”。第三方组件许可不因项目 LICENSE 未定而失效。

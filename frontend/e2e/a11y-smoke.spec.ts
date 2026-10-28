@@ -122,3 +122,33 @@ test.describe('evidence drawer accessibility smoke', () => {
     await expect.poll(() => page.evaluate(() => document.body.style.overflow)).toBe('');
   });
 });
+
+
+// F26: 200% browser zoom equivalent (viewport halved) and forced-colors mode.
+test.describe('zoom and forced colors', () => {
+  test('200% zoom equivalent viewport keeps workbench and drawer within bounds', async ({page}) => {
+    await page.setViewportSize({width: 720, height: 450});
+    await installFixtureRoutes(page);
+    await openWorkbench(page);
+    await expect(page.getByRole('heading', {name: '安全事件列表'})).toBeVisible();
+    await expectNoHorizontalOverflow(page);
+    await openIncident(page);
+    await page.getByRole('button', {name: /查看全部成员证据/}).click();
+    await expect(page.getByRole('dialog')).toBeVisible();
+    await expectNoHorizontalOverflow(page);
+  });
+
+  test.describe('forced colors', () => {
+    test.use({forcedColors: 'active'});
+    test('workbench table and evidence dialog stay visible in forced-colors mode', async ({page}) => {
+      await installFixtureRoutes(page);
+      await openWorkbench(page);
+      await expect(page.getByRole('heading', {name: '安全事件列表'})).toBeVisible();
+      await expect(page.getByRole('button', {name: '查看详情 →'}).first()).toBeVisible();
+      await openIncident(page);
+      await page.getByRole('button', {name: /查看全部成员证据/}).click();
+      await expect(page.getByRole('dialog')).toBeVisible();
+      await expect(page.getByText('相关字段')).toBeVisible();
+    });
+  });
+});

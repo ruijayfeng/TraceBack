@@ -98,3 +98,21 @@ AI 入口/锚点；重新生成二次确认；生成进度/取消/45s 超时/失
 - **F19 视觉/回归**：工具栏/移动顶栏/etc. polish；16 张视觉基线已用新代码刷新；axe 0、detector 0、e2e 20 passed/3 skipped、Vitest 8 files/**60 tests**、bundle JS 138.62KB gzip / CSS 15.85KB gzip。
 
 命令：`npm run verify`、`npm run test:e2e`、`npm run test:e2e:visual`、`npm run detect:ui:check`。
+
+
+---
+
+## 后续打磨（F20–F29，2026-10-28）
+
+- **F20 AI job 持久化**：`outputs/ai_jobs/<job_id>.json` 记录状态/结果；重启后 completed/cancelled 可查询，running 标记为 `job_interrupted`。
+- **F21 OpenAPI**：`docs/openapi-workbench.json` 快照 + `scripts/export_openapi.py [--check]` + 契约测试，冻结 11 路由方法不变。
+- **F22 限流**：explain job 并发 ≤4、每分钟 ≤30，超限 429 + `Retry-After: 5`；测试覆盖。
+- **F23 后端测试环境**：`scripts/run-backend-tests.sh`（PYTHONPATH=backend+root）；全量套件的 55 failed/215 errors 来自仓库缺失的 data/outputs 工件，非本次改动；`test_workbench.py` 22 tests 全绿。
+- **F24 可访问性结构回归**：`e2e/aria-structure.spec.ts`（工作台/详情/证据抽屉 ariaSnapshot）、`docs/A11Y-MANUAL-CHECKLIST.md`（VoiceOver/NVDA 手测清单，待发布前人工执行）。
+- **F25 200% zoom / WebKit**：200% 等效视口 e2e 通过；WebKit 浏览器下载在本机环境卡住，`test:e2e:webkit` 脚本已就绪，待网络恢复后跑。
+- **F26 forced-colors**：e2e + CSS 保证边界/焦点在 forced-colors 下可见。
+- **F27 暗色主题**：评估后暂不纳入本轮 PR（token 已留）。
+- **F28 真数据 CI**：仍受数据集/secret 限制。
+- **F29 文档**：README/DESIGN/UI 报告/可访问性清单收口。
+
+新增/更新命令：`PYTHONPATH=backend python scripts/export_openapi.py --check`、`bash scripts/run-backend-tests.sh backend/tests/test_workbench.py`、`npm run test:e2e:webkit`（环境就绪后）。

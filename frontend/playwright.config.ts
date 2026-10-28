@@ -26,6 +26,8 @@ const e2ePort = Number(process.env.TRACEBACK_E2E_PORT || 4174);
 const localBaseURL = `http://127.0.0.1:${e2ePort}`;
 const baseURL = externalWebUrl || (realMode ? 'http://127.0.0.1:8000' : localBaseURL);
 const browserExecutable = process.env.TRACEBACK_BROWSER_EXECUTABLE;
+// F25: allow the self-contained suite to run on WebKit/Firefox too.
+const browserName = process.env.TRACEBACK_BROWSER as 'chromium' | 'firefox' | 'webkit' | undefined;
 
 export default defineConfig({
   testDir: './e2e',
@@ -52,6 +54,6 @@ export default defineConfig({
     reducedMotion: 'reduce',
     screenshot: 'only-on-failure',
     trace: 'retain-on-failure',
-    ...(browserExecutable ? {launchOptions: {executablePath: browserExecutable}} : {channel: 'chrome'}),
+    ...(browserExecutable ? {launchOptions: {executablePath: browserExecutable}} : browserName ? {browserName} : {channel: 'chrome'}),
   },
 });

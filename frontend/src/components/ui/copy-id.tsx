@@ -57,7 +57,7 @@ export function CopyButton({
     <button
       aria-label={state === "copied" ? `已复制${label}` : `复制${label}`}
       className={cn(
-        "inline-flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-sm text-muted-foreground transition-colors",
+        "inline-flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-sm border-0 bg-transparent p-0 text-muted-foreground transition-colors",
         "hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background",
         state === "copied" && "text-success-foreground",
         state === "failed" && "text-destructive-foreground",
